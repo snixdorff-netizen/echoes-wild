@@ -16,6 +16,8 @@ import {
   clipQualityFromScore,
   selectRecordingTarget,
   facingBonusFromDiff,
+  computeSnrDb,
+  computeIdConfidence,
   computeCallWarmth,
   nearestActiveCaller,
   tickAnimals,
@@ -26,6 +28,10 @@ import {
   integrityLoss,
   applyIdentification,
   shouldCompleteExpedition,
+  getBossSpeciesId,
+  expeditionPhase,
+  EXPEDITION_REGULAR_TARGET,
+  BOSS_SPECIES_BY_HABITAT,
   markHabitatDone,
   personaHint,
   initAnimals,
@@ -34,6 +40,12 @@ import {
   buildIdentifyOptions,
   buildSpectrogramPeaks,
   SPECIES_FREQ_PROFILES,
+  SPECIES_LORE,
+  HABITAT_NOISE_FLOOR,
+  buildPhenologyMatrix,
+  suggestPhenologyTime,
+  buildClipManifest,
+  dailyRareSpecies,
   simIdentificationBonus,
 } from './echoes-core.mjs';
 import { FieldSession } from './field-session.mjs';
@@ -56,6 +68,10 @@ const INJECT_FNS = [
   shouldCompleteExpedition,
 ];
 
+const HTML_GET_BOSS_SHIM = `function getBossSpeciesId(habitat = 'forest') {
+  return EchoesCore.BOSS_SPECIES_BY_HABITAT[habitat] || 'owl';
+}`;
+
 function fnSource(fn) {
   return fn
     .toString()
@@ -72,14 +88,20 @@ const body = `/* eslint-disable */
   const PERSONAS = ${JSON.stringify(PERSONAS)};
   const SPECIES = ${JSON.stringify(SPECIES)};
   const SPECIES_FREQ_PROFILES = ${JSON.stringify(SPECIES_FREQ_PROFILES)};
+  const SPECIES_LORE = ${JSON.stringify(SPECIES_LORE)};
+  const HABITAT_NOISE_FLOOR = ${JSON.stringify(HABITAT_NOISE_FLOOR)};
   const TIME_ORDER = ${JSON.stringify(TIME_ORDER)};
   const FACING_BONUS_THRESHOLD = ${FACING_BONUS_THRESHOLD};
+  const EXPEDITION_REGULAR_TARGET = ${EXPEDITION_REGULAR_TARGET};
+  const BOSS_SPECIES_BY_HABITAT = ${JSON.stringify(BOSS_SPECIES_BY_HABITAT)};
 
   ${fnSource(angleDiff)}
   ${fnSource(scoreAnimalTarget)}
   ${fnSource(clipQualityFromScore)}
   ${fnSource(selectRecordingTarget)}
   ${fnSource(facingBonusFromDiff)}
+  ${fnSource(computeSnrDb)}
+  ${fnSource(computeIdConfidence)}
   ${fnSource(computeCallWarmth)}
   ${fnSource(nearestActiveCaller)}
   ${fnSource(tickAnimals)}
@@ -91,12 +113,18 @@ const body = `/* eslint-disable */
   ${fnSource(integrityLoss)}
   ${fnSource(applyIdentification)}
   ${fnSource(shouldCompleteExpedition)}
+  ${fnSource(getBossSpeciesId)}
+  ${fnSource(expeditionPhase)}
   ${fnSource(markHabitatDone)}
   ${fnSource(personaHint)}
   ${fnSource(activeSpeciesForTime)}
   ${fnSource(likelyMatchThreshold)}
   ${fnSource(buildIdentifyOptions)}
   ${fnSource(buildSpectrogramPeaks)}
+  ${fnSource(buildPhenologyMatrix)}
+  ${fnSource(suggestPhenologyTime)}
+  ${fnSource(buildClipManifest)}
+  ${fnSource(dailyRareSpecies)}
   ${fnSource(simIdentificationBonus)}
 
   ${fieldSessionSrc}
@@ -112,6 +140,8 @@ const body = `/* eslint-disable */
     clipQualityFromScore: clipQualityFromScore,
     selectRecordingTarget: selectRecordingTarget,
     facingBonusFromDiff: facingBonusFromDiff,
+    computeSnrDb: computeSnrDb,
+    computeIdConfidence: computeIdConfidence,
     computeCallWarmth: computeCallWarmth,
     nearestActiveCaller: nearestActiveCaller,
     tickAnimals: tickAnimals,
@@ -123,6 +153,10 @@ const body = `/* eslint-disable */
     integrityLoss: integrityLoss,
     applyIdentification: applyIdentification,
     shouldCompleteExpedition: shouldCompleteExpedition,
+    getBossSpeciesId: getBossSpeciesId,
+    expeditionPhase: expeditionPhase,
+    EXPEDITION_REGULAR_TARGET: EXPEDITION_REGULAR_TARGET,
+    BOSS_SPECIES_BY_HABITAT: BOSS_SPECIES_BY_HABITAT,
     markHabitatDone: markHabitatDone,
     personaHint: personaHint,
     activeSpeciesForTime: activeSpeciesForTime,
@@ -130,6 +164,12 @@ const body = `/* eslint-disable */
     buildIdentifyOptions: buildIdentifyOptions,
     buildSpectrogramPeaks: buildSpectrogramPeaks,
     SPECIES_FREQ_PROFILES: SPECIES_FREQ_PROFILES,
+    SPECIES_LORE: SPECIES_LORE,
+    HABITAT_NOISE_FLOOR: HABITAT_NOISE_FLOOR,
+    buildPhenologyMatrix: buildPhenologyMatrix,
+    suggestPhenologyTime: suggestPhenologyTime,
+    buildClipManifest: buildClipManifest,
+    dailyRareSpecies: dailyRareSpecies,
     simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };
@@ -140,6 +180,7 @@ writeFileSync(out, body);
 
 const helperBlock = [
   '    /* AUTO-INJECTED by tools/build-browser-core.mjs — pure field-loop helpers in shipped source */',
+  '    ' + HTML_GET_BOSS_SHIM.replace(/\n/g, '\n    '),
   ...INJECT_FNS.map((fn) => '    ' + fnSource(fn).replace(/\n/g, '\n    ')),
 ].join('\n');
 

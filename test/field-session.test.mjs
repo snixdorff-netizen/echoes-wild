@@ -73,6 +73,7 @@ describe('convergence gate — low-skill general can fail to complete', () => {
           features,
           rng: seededRandom(seed),
           recordBudget: 8,
+          bossAssist: false,
         }),
       );
     }

@@ -13,6 +13,8 @@ import {
   scoreAnimalTarget,
   clipQualityFromScore,
   initAnimals,
+  EXPEDITION_REGULAR_TARGET,
+  BOSS_SPECIES_BY_HABITAT,
 } from '../tools/echoes-core.mjs';
 import { FieldSession } from '../tools/field-session.mjs';
 
@@ -33,7 +35,10 @@ function extractInjectedHelpers() {
 
 function loadInjectedFromIndex() {
   const block = extractInjectedHelpers();
-  const sandbox = {};
+  const sandbox = {
+    EchoesCore: { BOSS_SPECIES_BY_HABITAT },
+    EXPEDITION_REGULAR_TARGET,
+  };
   vm.runInNewContext(block, sandbox);
   return sandbox;
 }
@@ -56,7 +61,7 @@ describe('injected pure helpers in index.html source', () => {
 
   it('applyIdentification matches echoes-core.mjs', () => {
     const injected = loadInjectedFromIndex();
-    const state = { chosenId: 'owl', dominantId: 'owl', quality: 0.82, logged: 2, integrity: 90 };
+    const state = { chosenId: 'owl', dominantId: 'owl', quality: 0.82, logged: 2, integrity: 90, habitat: 'forest' };
     const mjs = applyIdentification(state);
     const page = injected.applyIdentification(state);
     assert.equal(JSON.stringify(page), JSON.stringify(mjs));
@@ -64,8 +69,8 @@ describe('injected pure helpers in index.html source', () => {
 
   it('shouldCompleteExpedition matches echoes-core.mjs', () => {
     const injected = loadInjectedFromIndex();
-    assert.equal(injected.shouldCompleteExpedition(5), shouldCompleteExpedition(5));
-    assert.equal(injected.shouldCompleteExpedition(6), shouldCompleteExpedition(6));
+    assert.equal(injected.shouldCompleteExpedition(3, false), shouldCompleteExpedition(3, false));
+    assert.equal(injected.shouldCompleteExpedition(4, true), shouldCompleteExpedition(4, true));
   });
 });
 
@@ -92,7 +97,7 @@ describe('shipped loop runtime parity (page helpers === sim helpers)', () => {
     assert.match(html, /function selectRecordingTargetInPage/);
     assert.match(html, /function fieldLoopRecord/);
     assert.match(html, /const preview = applyIdentification/);
-    assert.match(html, /if \(shouldCompleteExpedition\(logged\)\)/);
+    assert.match(html, /if \(shouldCompleteExpedition\(logged, bossLogged\)\)/);
     assert.match(html, /dataset\.speciesId/);
     assert.match(extractInjectedHelpers(), /function scoreAnimalTarget/);
   });
@@ -110,10 +115,15 @@ describe('shipped loop runtime parity (page helpers === sim helpers)', () => {
       quality: clip.quality,
       logged: before,
       integrity: session.getState().integrity,
+      bossLogged: session.getState().bossLogged,
+      habitat: session.getState().gameState.habitat,
     });
     const outcome = session.identify(clip.dominant.id);
     assert.equal(outcome.logged, pure.logged);
     assert.equal(session.getState().logged, pure.logged);
-    assert.equal(shouldCompleteExpedition(session.getState().logged), session.getState().logged >= 6);
+    assert.equal(
+      shouldCompleteExpedition(session.getState().logged, session.getState().bossLogged),
+      session.getState().completed,
+    );
   });
 });

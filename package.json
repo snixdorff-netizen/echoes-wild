@@ -7,10 +7,14 @@
     "test": "npm run build:browser && node --test test/*.test.mjs",
     "sim": "node tools/run-sim-twice.mjs",
     "verify": "node tools/browser-verify.mjs",
+    "capture-demo": "node tools/capture-demo.mjs",
     "evidence": "node tools/collect-evidence.mjs",
     "war-room": "node tools/war-room.mjs",
     "expert-war-room": "node tools/expert-war-room.mjs",
-    "verify:all": "npm test && node tools/run-sim-twice.mjs && node tools/browser-verify.mjs && node tools/collect-evidence.mjs"
+    "bioacoustics-war-room": "node tools/bioacoustics-war-room.mjs",
+    "fun-plan-war-room": "node tools/fun-plan-war-room.mjs",
+    "bioacoustics-ci": "node tools/bioacoustics-ci-gate.mjs",
+    "verify:all": "npm test && node tools/run-sim-twice.mjs && node tools/bioacoustics-ci-gate.mjs && node tools/browser-verify.mjs && node tools/collect-evidence.mjs"
   },
   "devDependencies": {
     "playwright": "^1.61.1"

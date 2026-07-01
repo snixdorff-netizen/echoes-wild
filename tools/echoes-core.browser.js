@@ -5,8 +5,12 @@
   const PERSONAS = ["liam","aisha","marcus","elena"];
   const SPECIES = [{"id":"cardinal","name":"Northern Cardinal","activity":["dawn","day"]},{"id":"owl","name":"Barred Owl","activity":["dusk","night"]},{"id":"peeper","name":"Spring Peeper","activity":["dawn","night"]},{"id":"cricket","name":"Tree Cricket","activity":["dusk","night"]},{"id":"woodpecker","name":"Pileated Woodpecker","activity":["day"]},{"id":"bat","name":"Big Brown Bat","activity":["dusk","night"]}];
   const SPECIES_FREQ_PROFILES = {"cardinal":{"peaks":[0.28,0.45,0.62],"label":"Whistle band"},"owl":{"peaks":[0.18,0.35],"label":"Low hoot"},"peeper":{"peaks":[0.72,0.82],"label":"High peep"},"cricket":{"peaks":[0.65,0.78],"label":"Chirp rhythm"},"woodpecker":{"peaks":[0.22,0.38,0.52,0.68],"label":"Drum bursts"},"bat":{"peaks":[0.55,0.7],"label":"FM sweep","fm":true}};
+  const SPECIES_LORE = {"cardinal":{"structure":"Clear whistled phrases, ~2–3 kHz fundamentals","duty":"Dawn + day chorus","tip":"Repeated 2-note motif; harmonics rise with SNR"},"owl":{"structure":"Low hoots ~300 Hz, 8-syllable rhythm","duty":"Dusk + night","tip":"\"Who-cooks-for-you\" — space hoots ~2 s apart"},"peeper":{"structure":"High peep ~3 kHz, short duty cycle","duty":"Dawn + night at wetlands","tip":"Mass chorus raises noise floor — aim one caller"},"cricket":{"structure":"Rhythmic chirp ~3.1 kHz band","duty":"Dusk + night","tip":"Temperature-linked rate; check spectrogram harmonics"},"woodpecker":{"structure":"Drum bursts 0.5–2 kHz, irregular spacing","duty":"Day only","tip":"Drumming = territory; not song — look for burst pattern"},"bat":{"structure":"FM sweep down-chirp (down-converted)","duty":"Dusk + night","tip":"FM slope visible in Kaleidoscope; not tonal like birds"}};
+  const HABITAT_NOISE_FLOOR = {"forest":12,"marsh":18,"canyon":9};
   const TIME_ORDER = ["dawn","day","dusk","night"];
   const FACING_BONUS_THRESHOLD = 1.2;
+  const EXPEDITION_REGULAR_TARGET = 4;
+  const BOSS_SPECIES_BY_HABITAT = {"forest":"owl","marsh":"peeper","canyon":"woodpecker"};
 
   function angleDiff(dir, facing) {
   return Math.abs(((dir - facing + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
@@ -49,6 +53,21 @@
   if (!listenActive) return Math.max(0.35, 1 - adiff / Math.PI) * 0.9;
   const align = Math.max(0, 1 - adiff / (Math.PI * 0.42));
   return 0.55 + align * 2.0;
+}
+  function computeSnrDb(player, animal, listenActive = false) {
+  const warmth = computeCallWarmth(player, animal);
+  const prox = Math.max(0.08, 1 - warmth.dist / 500);
+  const base = listenActive ? 6 + warmth.warmth * 24 : 3 + prox * 8;
+  const facingBonus = listenActive ? warmth.facingAlign * 6 : 0;
+  const distPenalty = Math.max(0, (warmth.dist - 280) / 45);
+  const db = base + facingBonus - distPenalty;
+  return Math.round(Math.max(-4, Math.min(32, db)) * 10) / 10;
+}
+  function computeIdConfidence({ quality, peakTapped, isLikely }) {
+  let conf = (quality ?? 0.5) * 55;
+  if (peakTapped) conf += 22;
+  if (isLikely) conf += 15;
+  return Math.round(Math.max(12, Math.min(98, conf)));
 }
   function computeCallWarmth(player, animal) {
   const dx = animal.x - player.x;
@@ -136,27 +155,71 @@
   function integrityLoss(quality) {
   return quality > 0.7 ? 8 : 4;
 }
-  function applyIdentification({ chosenId, dominantId, quality, logged, integrity }) {
+  function applyIdentification({
+  chosenId,
+  dominantId,
+  quality,
+  logged,
+  integrity,
+  bossLogged = false,
+  habitat = 'forest',
+}) {
   const correct = chosenId === dominantId;
+  const bossId = getBossSpeciesId(habitat);
+  const isBoss = dominantId === bossId;
+
   if (correct) {
     const gain = integrityGain(quality);
+    if (isBoss && logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
+      return {
+        correct: true,
+        logged,
+        bossLogged: true,
+        integrity: Math.min(100, integrity + gain + 5),
+        delta: gain + 5,
+        isBoss: true,
+      };
+    }
+    if (logged >= EXPEDITION_REGULAR_TARGET && !isBoss) {
+      return {
+        correct: true,
+        logged,
+        bossLogged,
+        integrity: Math.min(100, integrity + Math.max(2, Math.floor(gain / 2))),
+        delta: Math.max(2, Math.floor(gain / 2)),
+        bonusLog: true,
+      };
+    }
     return {
       correct: true,
-      logged: Math.min(6, logged + 1),
+      logged: Math.min(EXPEDITION_REGULAR_TARGET, logged + 1),
+      bossLogged,
       integrity: Math.min(100, integrity + gain),
       delta: gain,
+      isBossEarly: isBoss && logged < EXPEDITION_REGULAR_TARGET,
     };
   }
   const loss = integrityLoss(quality);
   return {
     correct: false,
     logged,
+    bossLogged,
     integrity: Math.max(35, integrity - loss),
     delta: -loss,
+    missSpeciesId: dominantId,
   };
 }
-  function shouldCompleteExpedition(logged) {
-  return logged >= 6;
+  function shouldCompleteExpedition(logged, bossLogged = false) {
+  return logged >= EXPEDITION_REGULAR_TARGET && bossLogged;
+}
+  function getBossSpeciesId(habitat = 'forest') {
+  return BOSS_SPECIES_BY_HABITAT[habitat] || 'owl';
+}
+  function expeditionPhase(logged, bossLogged = false, habitat = 'forest') {
+  if (shouldCompleteExpedition(logged, bossLogged)) return 'complete';
+  if (logged >= EXPEDITION_REGULAR_TARGET) return 'boss';
+  if (logged >= 1) return 'survey';
+  return 'explore';
 }
   function markHabitatDone(doneList, habitat) {
   const done = [...doneList];
@@ -215,6 +278,52 @@
     fm: !!profile.fm,
   }));
 }
+  function buildPhenologyMatrix(speciesList = SPECIES) {
+  return TIME_ORDER.map((time) => ({
+    time,
+    species: speciesList.filter((sp) => sp.activity.includes(time)).map((sp) => sp.id),
+    count: speciesList.filter((sp) => sp.activity.includes(time)).length,
+  }));
+}
+  function suggestPhenologyTime({ speciesList, timeOfDay, loggedIds = [] }) {
+  const matrix = buildPhenologyMatrix(speciesList);
+  let best = timeOfDay;
+  let bestScore = -1;
+  for (const row of matrix) {
+    const unlogged = row.species.filter((id) => !loggedIds.includes(id)).length;
+    const score = unlogged * 2 + row.count;
+    if (score > bestScore) {
+      bestScore = score;
+      best = row.time;
+    }
+  }
+  return { time: best, matrix };
+}
+  function buildClipManifest(entries, meta = {}) {
+  const header = 'timestamp,habitat,time_of_day,species_id,species_name,quality,snr_db,correct,confidence';
+  const rows = entries.map((e, i) => {
+    const sp = e.species || {};
+    const id = sp.id || sp;
+    const name = sp.name || id;
+    return [
+      e.timestamp || `clip_${i + 1}`,
+      meta.habitat || '',
+      e.time || e.timeOfDay || '',
+      id,
+      `"${String(name).replace(/"/g, '""')}"`,
+      e.quality != null ? Math.round(e.quality * 1000) / 1000 : '',
+      e.snrDb != null ? e.snrDb : '',
+      e.correct ? 'true' : 'false',
+      e.confidence != null ? e.confidence : '',
+    ].join(',');
+  });
+  return [header, ...rows].join('\n');
+}
+  function dailyRareSpecies(date = new Date()) {
+  const seed = date.getFullYear() * 1000 + date.getMonth() * 50 + date.getDate();
+  const idx = seed % SPECIES.length;
+  return SPECIES[idx];
+}
   function simIdentificationBonus({ features, persona, quality, skill }) {
   let bonus = 0;
   const threshold = likelyMatchThreshold(persona);
@@ -245,6 +354,7 @@
     this.player = { x: 440, y: 310, vx: 0, vy: 0, facing: 0 };
     this.animals = this._initAnimals(habitat);
     this.logged = 0;
+    this.bossLogged = false;
     this.integrity = 100;
     this.journal = [];
     this.currentClip = null;
@@ -381,12 +491,20 @@
     this.tick({ keys: {}, mouse: { down: false, listenDown: false, x: this.player.x, y: this.player.y }, dt: 0.5, now: this._now });
   }
 
-  record() {
-    const rec = selectRecordingTarget(
-      { x: this.player.x, y: this.player.y, facing: this.player.facing, listenActive: this.listenActive },
-      this.animals,
-      this.gameState.timeOfDay,
-    );
+  record({ preferBoss = false } = {}) {
+    const player = { x: this.player.x, y: this.player.y, facing: this.player.facing, listenActive: this.listenActive };
+    let rec = null;
+    if (preferBoss || this.needsBossPhase()) {
+      const bossId = getBossSpeciesId(this.gameState.habitat);
+      const boss = this.animals.find((a) => a.id === bossId);
+      if (boss && boss.activity.includes(this.gameState.timeOfDay)) {
+        const bestScore = scoreAnimalTarget(player, boss, this.gameState.timeOfDay);
+        rec = { dominant: boss, quality: clipQualityFromScore(bestScore), bestScore };
+      }
+    }
+    if (!rec) {
+      rec = selectRecordingTarget(player, this.animals, this.gameState.timeOfDay);
+    }
     const best = rec.dominant || rec.best;
     this.recordCount++;
     this.currentClip = {
@@ -409,8 +527,11 @@
       quality: clip.quality,
       logged: this.logged,
       integrity: this.integrity,
+      bossLogged: this.bossLogged,
+      habitat: this.gameState.habitat,
     });
     this.logged = outcome.logged;
+    this.bossLogged = outcome.bossLogged ?? this.bossLogged;
     this.integrity = outcome.integrity;
     this.journal.unshift({
       species: clip.dominant,
@@ -426,6 +547,7 @@
   switchHabitat(habitat) {
     this.gameState.habitat = habitat;
     this.logged = 0;
+    this.bossLogged = false;
     this.integrity = 100;
     this.journal = [];
     this.currentClip = null;
@@ -440,17 +562,40 @@
     this.gameState.timeOfDay = TIME_ORDER[(idx + 1) % TIME_ORDER.length];
   }
 
+  /** Sim + UI parity: boss-active time shift and placement when survey target is met. */
+  prepareBossPhase() {
+    const bossId = getBossSpeciesId(this.gameState.habitat);
+    const bossTod = bossId === 'owl' ? 'dusk' : bossId === 'peeper' ? 'night' : 'day';
+    this.gameState.timeOfDay = bossTod;
+    const bossAnimal = this.animals.find((a) => a.id === bossId);
+    if (bossAnimal) {
+      bossAnimal.x = 440 + (this.rng() - 0.5) * 70;
+      bossAnimal.y = 285 + (this.rng() - 0.5) * 50;
+      bossAnimal.lastCall = this._now;
+      this.player.x = bossAnimal.x - 55;
+      this.player.y = bossAnimal.y - 15;
+      this.player.facing = Math.atan2(bossAnimal.y - this.player.y, bossAnimal.x - this.player.x);
+      this.listenActive = true;
+    }
+    return bossId;
+  }
+
+  needsBossPhase() {
+    return this.logged >= EXPEDITION_REGULAR_TARGET && !this.bossLogged;
+  }
+
   getState() {
     return {
       player: { ...this.player },
       animals: this.animals,
       gameState: { ...this.gameState },
       logged: this.logged,
+      bossLogged: this.bossLogged,
       integrity: this.integrity,
       journal: [...this.journal],
       currentClip: this.currentClip ? { ...this.currentClip } : null,
       listenActive: this.listenActive,
-      completed: shouldCompleteExpedition(this.logged),
+      completed: shouldCompleteExpedition(this.logged, this.bossLogged),
       recordCount: this.recordCount,
       listenTicksSession: this.listenTicksSession,
       isDashing: this._isDashing,
@@ -471,6 +616,8 @@
     clipQualityFromScore: clipQualityFromScore,
     selectRecordingTarget: selectRecordingTarget,
     facingBonusFromDiff: facingBonusFromDiff,
+    computeSnrDb: computeSnrDb,
+    computeIdConfidence: computeIdConfidence,
     computeCallWarmth: computeCallWarmth,
     nearestActiveCaller: nearestActiveCaller,
     tickAnimals: tickAnimals,
@@ -482,6 +629,10 @@
     integrityLoss: integrityLoss,
     applyIdentification: applyIdentification,
     shouldCompleteExpedition: shouldCompleteExpedition,
+    getBossSpeciesId: getBossSpeciesId,
+    expeditionPhase: expeditionPhase,
+    EXPEDITION_REGULAR_TARGET: EXPEDITION_REGULAR_TARGET,
+    BOSS_SPECIES_BY_HABITAT: BOSS_SPECIES_BY_HABITAT,
     markHabitatDone: markHabitatDone,
     personaHint: personaHint,
     activeSpeciesForTime: activeSpeciesForTime,
@@ -489,6 +640,12 @@
     buildIdentifyOptions: buildIdentifyOptions,
     buildSpectrogramPeaks: buildSpectrogramPeaks,
     SPECIES_FREQ_PROFILES: SPECIES_FREQ_PROFILES,
+    SPECIES_LORE: SPECIES_LORE,
+    HABITAT_NOISE_FLOOR: HABITAT_NOISE_FLOOR,
+    buildPhenologyMatrix: buildPhenologyMatrix,
+    suggestPhenologyTime: suggestPhenologyTime,
+    buildClipManifest: buildClipManifest,
+    dailyRareSpecies: dailyRareSpecies,
     simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };

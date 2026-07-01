@@ -15,6 +15,14 @@ import {
   initAnimals,
   computeCallWarmth,
   buildSpectrogramPeaks,
+  scoreBioacousticsRubric,
+  scoreFunPlanRubric,
+  readFunPlanStatus,
+  computeSnrDb,
+  computeIdConfidence,
+  buildPhenologyMatrix,
+  buildClipManifest,
+  dailyRareSpecies,
 } from '../tools/echoes-core.mjs';
 
 describe('recording quality scoring', () => {
@@ -85,10 +93,38 @@ describe('identification outcomes', () => {
 });
 
 describe('expedition completion gate', () => {
-  it('triggers at 6 logged species', () => {
-    assert.equal(shouldCompleteExpedition(5), false);
-    assert.equal(shouldCompleteExpedition(6), true);
-    assert.equal(shouldCompleteExpedition(7), true);
+  it('requires 4 survey logs plus boss', () => {
+    assert.equal(shouldCompleteExpedition(3, false), false);
+    assert.equal(shouldCompleteExpedition(4, false), false);
+    assert.equal(shouldCompleteExpedition(4, true), true);
+    assert.equal(shouldCompleteExpedition(5, true), true);
+  });
+});
+
+describe('applyIdentification expedition arc', () => {
+  it('boss log completes only after survey target', () => {
+    const boss = applyIdentification({
+      chosenId: 'owl',
+      dominantId: 'owl',
+      quality: 0.8,
+      logged: 4,
+      integrity: 90,
+      bossLogged: false,
+      habitat: 'forest',
+    });
+    assert.equal(boss.bossLogged, true);
+    assert.equal(boss.logged, 4);
+    const early = applyIdentification({
+      chosenId: 'owl',
+      dominantId: 'owl',
+      quality: 0.8,
+      logged: 2,
+      integrity: 90,
+      bossLogged: false,
+      habitat: 'forest',
+    });
+    assert.equal(early.logged, 3);
+    assert.equal(early.isBossEarly, true);
   });
 });
 
@@ -140,6 +176,179 @@ describe('computeCallWarmth', () => {
     const cold = computeCallWarmth({ x: 500, y: 500, facing: 0, listenActive: false }, animal);
     assert.ok(warm.warmth > cold.warmth);
     assert.ok(warm.vol > cold.vol);
+  });
+});
+
+describe('computeSnrDb', () => {
+  it('returns higher dB when listening and facing caller', () => {
+    const animal = { x: 200, y: 300 };
+    const facing = Math.atan2(15, 30);
+    const hot = computeSnrDb({ x: 170, y: 285, facing, listenActive: true }, animal, true);
+    const cold = computeSnrDb({ x: 500, y: 500, facing: 0, listenActive: false }, animal, false);
+    assert.ok(hot > cold);
+    assert.ok(hot >= 8 && hot <= 32);
+  });
+});
+
+describe('computeIdConfidence', () => {
+  it('increases with peak tap and likely match', () => {
+    const base = computeIdConfidence({ quality: 0.6, peakTapped: false, isLikely: false });
+    const boosted = computeIdConfidence({ quality: 0.8, peakTapped: true, isLikely: true });
+    assert.ok(boosted > base);
+    assert.ok(boosted <= 98);
+  });
+});
+
+describe('buildPhenologyMatrix', () => {
+  it('marks species active per time window', () => {
+    const matrix = buildPhenologyMatrix();
+    const dawn = matrix.find((r) => r.time === 'dawn');
+    assert.ok(dawn.species.includes('cardinal'));
+    assert.ok(dawn.species.includes('peeper'));
+  });
+});
+
+describe('buildClipManifest', () => {
+  it('emits CSV header and rows', () => {
+    const csv = buildClipManifest([
+      { species: { id: 'owl', name: 'Barred Owl' }, time: 'dusk', quality: 0.8, correct: true, snrDb: 18, confidence: 82, timestamp: 't1' },
+    ], { habitat: 'forest' });
+    assert.ok(csv.includes('species_id'));
+    assert.ok(csv.includes('owl'));
+    assert.ok(csv.includes('forest'));
+  });
+});
+
+describe('dailyRareSpecies', () => {
+  it('returns deterministic species for a date', () => {
+    const a = dailyRareSpecies(new Date('2026-07-01'));
+    const b = dailyRareSpecies(new Date('2026-07-01'));
+    assert.equal(a.id, b.id);
+  });
+});
+
+describe('scoreBioacousticsRubric', () => {
+  it('penalizes domain friction and rewards interactive spectrogram', () => {
+    const base = scoreBioacousticsRubric({
+      role: 'pam_analyst',
+      completed: false,
+      integrity: 70,
+      friction: ['kaleidoscope_gap', 'no_snr_display', 'procedural_not_field_recording'],
+      delights: [],
+      features: { interactiveSpectrogram: false },
+      journal: [],
+      recQuality: 0.6,
+      listenActive: true,
+      playHabit: 'puzzle',
+    });
+    const improved = scoreBioacousticsRubric({
+      role: 'pam_analyst',
+      completed: true,
+      integrity: 88,
+      friction: ['integrity_not_snr'],
+      delights: ['spectrogram_peak_tapped'],
+      features: { interactiveSpectrogram: true, stereoWarmthAudio: true },
+      journal: [{ correct: true }, { correct: true }, { correct: true }, { correct: true }, { correct: true }, { correct: true }],
+      recQuality: 0.85,
+      listenActive: true,
+      playHabit: 'puzzle',
+    });
+    assert.ok(improved.trainingValue > base.trainingValue);
+    assert.ok(improved.spectrogramFidelity > base.spectrogramFidelity);
+    assert.ok(improved.wouldRecommendForTraining > base.wouldRecommendForTraining);
+  });
+});
+
+describe('scoreFunPlanRubric', () => {
+  it('penalizes missing expedition arc and rewards projected plan', () => {
+    const funPlanGap = {
+      listenConeCore: true,
+      spectrogramPuzzle: true,
+      expeditionArc: 'missing',
+      fieldReportFinale: 'partial',
+      meaningfulFailure: 'partial',
+      heroAudioPerHabitat: 'missing',
+      shareableWinGated: 'partial',
+      powerProgression: 'missing',
+      dailyBioBlitzHook: 'partial',
+      vectorFieldArt: true,
+      demoPresentation: true,
+    };
+    const gap = scoreFunPlanRubric({
+      role: 'citizen_scientist',
+      playHabit: 'cozy_sim',
+      completed: true,
+      integrity: 90,
+      friction: ['no_expedition_arc', 'no_hero_audio_moment', 'no_field_report_celebration'],
+      delights: ['stereo_warmth_aha'],
+      features: {},
+      funPlan: funPlanGap,
+      journal: Array.from({ length: 6 }, () => ({ correct: true })),
+      recQuality: 0.8,
+      listenActive: true,
+      logged: 6,
+    });
+    const shipped = scoreFunPlanRubric({
+      role: 'citizen_scientist',
+      playHabit: 'cozy_sim',
+      completed: true,
+      integrity: 90,
+      friction: [],
+      delights: ['stereo_warmth_aha', 'field_report_share'],
+      features: {},
+      funPlan: {
+        ...funPlanGap,
+        expeditionArc: 'shipped',
+        heroAudioPerHabitat: 'shipped',
+        fieldReportFinale: 'shipped',
+        meaningfulFailure: 'shipped',
+        shareableWinGated: 'shipped',
+        powerProgression: 'shipped',
+      },
+      journal: Array.from({ length: 4 }, () => ({ correct: true })),
+      recQuality: 0.8,
+      listenActive: true,
+      logged: 4,
+    });
+    assert.ok(shipped.fun > gap.fun);
+    assert.ok(shipped.wouldRecommendForFun > gap.wouldRecommendForFun);
+    assert.ok(shipped.payoffStrength > gap.payoffStrength);
+  });
+});
+
+describe('readFunPlanStatus', () => {
+  it('detects missing vs shipped fun-plan pillars from feature flags', () => {
+    const status = readFunPlanStatus({
+      stereoWarmthAudio: true,
+      canvasCompass: true,
+      interactiveSpectrogram: true,
+      shareReport: true,
+      speciesLore: true,
+      spectrogramShare: true,
+      dailyBioBlitz: true,
+      vectorResearcherArt: true,
+      demoMode: true,
+    });
+    assert.equal(status.expeditionArc, 'missing');
+    assert.equal(status.heroAudioPerHabitat, 'missing');
+    assert.equal(status.powerProgression, 'missing');
+    const shipped = readFunPlanStatus({
+      expeditionArc: true,
+      fieldReportFinale: 'shipped',
+      heroAudioPerHabitat: true,
+      shareableWinGated: true,
+      meaningfulFailure: 'shipped',
+      powerProgression: true,
+      listenConeProgression: true,
+      finalStretchCoach: true,
+      stereoWarmthAudio: true,
+      canvasCompass: true,
+      interactiveSpectrogram: true,
+    });
+    assert.equal(shipped.expeditionArc, 'shipped');
+    assert.equal(shipped.fieldReportFinale, 'shipped');
+    assert.equal(shipped.powerProgression, 'shipped');
+    assert.equal(shipped.finalStretchCoach, 'shipped');
   });
 });
 

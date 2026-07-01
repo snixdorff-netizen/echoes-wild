@@ -1,7 +1,7 @@
 /**
  * 100-player sim driver — feeds scripted inputs into FieldSession (fixed record budget).
  */
-import { markHabitatDone, scoreSessionRubric } from './echoes-core.mjs';
+import { markHabitatDone, scoreSessionRubric, EXPEDITION_REGULAR_TARGET } from './echoes-core.mjs';
 import {
   FieldSession,
   RECORD_BUDGET,
@@ -20,6 +20,7 @@ export function driveFieldSession({
   features = {},
   rng = Math.random,
   recordBudget = RECORD_BUDGET,
+  bossAssist = features.expeditionArc && skill >= 0.78,
 }) {
   const script = { ...SEGMENT_SCRIPTS[segment], skill };
   if (features.dashDisabled) script.dashChance = 0;
@@ -41,8 +42,19 @@ export function driveFieldSession({
 
   let firstRecQuality = null;
 
+  let bossPhasePrimed = false;
+
   for (let attempt = 0; attempt < recordBudget; attempt++) {
-    const ticks = 48 + Math.floor(skill * 14) + (usesMobileHud ? 6 : 0);
+    if (bossAssist && session.needsBossPhase()) {
+      session.prepareBossPhase();
+      if (!bossPhasePrimed) {
+        bossPhasePrimed = true;
+        if (features.expeditionArc) delights.push('boss_act_two');
+        if (features.heroAudioPerHabitat) delights.push('hero_audio_moment');
+      }
+    }
+
+    const ticks = 48 + Math.floor(skill * 14) + (usesMobileHud ? 6 : 0) + (bossAssist && session.needsBossPhase() ? 18 : 0);
     let ticksBeforeRecord = 0;
     let dashed = false;
 
@@ -65,7 +77,7 @@ export function driveFieldSession({
       friction.push('dash_scared_caller');
     }
 
-    const clip = session.record();
+    const clip = session.record({ preferBoss: bossAssist && session.needsBossPhase() });
     if (!clip) continue;
 
     if (firstRecQuality === null) firstRecQuality = clip.quality;
@@ -73,19 +85,25 @@ export function driveFieldSession({
     if (clip.quality <= 0.55) friction.push('noisy_recording');
     if (attempt === 0 && clip.quality > 0.6 && ticksBeforeRecord >= 8) delights.push('cone_aha_moment');
 
-    const chosenId = pickSimIdentification({
-      dominantId: clip.dominant.id,
-      animals: session.animals,
-      idSkill: script.idSkill * skill,
-      quality: clip.quality,
-      skill,
-      features,
-      persona,
-      timeOfDay: session.gameState.timeOfDay,
-      rng,
-    });
+    const chosenId = bossAssist && session.needsBossPhase()
+      ? clip.dominant.id
+      : pickSimIdentification({
+          dominantId: clip.dominant.id,
+          animals: session.animals,
+          idSkill: script.idSkill * skill,
+          quality: clip.quality,
+          skill,
+          features,
+          persona,
+          timeOfDay: session.gameState.timeOfDay,
+          rng,
+        });
     const outcome = session.identify(chosenId);
     if (outcome?.correct && features.integrityToasts && session.logged === 1) delights.push('first_species_logged');
+    if (outcome?.correct && session.logged === EXPEDITION_REGULAR_TARGET && !session.bossLogged && features.expeditionArc) {
+      delights.push('survey_complete_act_two');
+    }
+    if (outcome?.isBoss && session.bossLogged) delights.push('boss_caller_logged');
     if (outcome && !outcome.correct) {
       if (!features.integrityToasts) friction.push('opaque_integrity_penalty');
       friction.push('id_card_miss');
@@ -101,6 +119,7 @@ export function driveFieldSession({
     if (features.habitatCtas) delights.push('habitat_switch_cta');
     if (features.learnSummary) delights.push('what_you_learned_summary');
     if (features.shareReport) delights.push('field_report_share');
+    if (features.fieldReportFinale === 'shipped') delights.push('field_report_finale');
     if (features.feedbackCta) delights.push('feedback_button_ready');
   } else {
     friction.push('habitat_incomplete');

@@ -52,19 +52,99 @@
     #onboard { position: fixed; inset: 0; background: rgba(0,0,0,.78); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; }
     #audio-gate { z-index: 54; }
     #onboard .card { background: #0f231c; border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 420px; width: 100%; padding: 20px; }
+    #snr-meter { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; }
+    #snr-bar { flex: 1; max-width: 88px; height: 6px; border-radius: 4px; background: rgba(0,0,0,.35); overflow: hidden; }
+    #snr-bar > div { height: 100%; background: linear-gradient(90deg, #f59e0b, #34d399); transition: width .15s; }
+    body.demo-mode #game { outline: 3px solid rgba(74,222,128,.45); outline-offset: 4px; }
+    body.demo-mode .demo-label { font-size: 14px !important; font-weight: 700; }
+    .tool-modal { position: fixed; inset: 0; z-index: 58; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.78); }
+    .tool-modal .card { background: #0f231c; border: 1px solid rgba(74,222,128,.25); border-radius: 20px; max-width: 520px; width: 100%; padding: 18px; max-height: 90vh; overflow-y: auto; }
+    .k-cluster { min-height: 72px; border: 2px dashed rgba(255,255,255,.15); border-radius: 12px; padding: 8px; background: rgba(0,0,0,.25); }
+    .k-cluster.over { border-color: rgba(74,222,128,.65); background: rgba(6,78,59,.25); }
+    .k-clip { display: inline-block; padding: 6px 10px; margin: 4px; border-radius: 10px; font-size: 10px; background: rgba(52,211,153,.2); border: 1px solid rgba(74,222,128,.4); cursor: grab; touch-action: none; }
+    .k-clip.dragging { opacity: 0.55; }
+    .sm-step { padding: 10px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); margin-bottom: 8px; }
+    .sm-step.done { border-color: rgba(74,222,128,.45); background: rgba(6,78,59,.2); }
+    .id-confidence { font-size: 10px; color: rgba(167,243,208,.85); margin-left: 6px; }
+    #training-disclaimer { font-size: 10px; color: rgba(167,243,208,.75); background: rgba(6,78,59,.35); border: 1px solid rgba(74,222,128,.2); border-radius: 12px; padding: 8px 12px; margin-bottom: 10px; }
+    #training-disclaimer button { float: right; font-size: 10px; opacity: 0.7; }
+    #progression-map { display: flex; gap: 6px; align-items: center; font-size: 10px; color: rgba(167,243,208,.7); }
+    #progression-map .hab-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); }
+    #progression-map .hab-dot.done { background: rgba(52,211,153,.75); border-color: rgba(110,231,183,.8); }
+    #bioblitz-rare { font-size: 10px; color: #fde68a; margin-top: 2px; }
+    .pheno-cell { width: 28px; height: 18px; border-radius: 4px; display: inline-block; margin: 1px; }
+    .pheno-cell.on { background: rgba(52,211,153,.55); border: 1px solid rgba(110,231,183,.6); }
+    .pheno-cell.off { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); }
+    .pheno-time-btn { padding: 6px 10px; border-radius: 10px; font-size: 11px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); }
+    .pheno-time-btn.active { background: rgba(16,185,129,.35); border-color: rgba(74,222,128,.55); }
+    .pheno-time-btn.suggested { box-shadow: 0 0 0 2px rgba(253,224,71,.45); }
+    #lore-card { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(6,78,59,.3); border: 1px solid rgba(74,222,128,.25); font-size: 11px; }
+    body.persona-liam #nearest-hint { font-size: 10px; }
+    body.persona-elena #nearest-hint { font-size: 12px; }
+    body.persona-aisha .desktop-hint { display: inline !important; }
+    #game-wrap { position: relative; border-radius: 22px; overflow: hidden; max-width: 880px; margin: 0 auto;
+      box-shadow: 0 0 0 1px rgba(74,222,128,.14), 0 28px 56px -14px rgba(0,0,0,.72), 0 0 72px rgba(52,211,153,.07); }
+    #game-wrap canvas { border: none; box-shadow: none; border-radius: 0; }
+    body.demo-presentation { padding: 28px 32px; max-width: 980px; background: radial-gradient(ellipse at 50% 0%, #0a2418 0%, #050f0c 55%); }
+    body.demo-presentation #training-disclaimer,
+    body.demo-presentation #advanced-bar,
+    body.demo-presentation #journal,
+    body.demo-presentation #mission-bar,
+    body.demo-presentation #interactive-tutorial,
+    body.demo-presentation #guided-coach,
+    body.demo-presentation #onboard,
+    body.demo-presentation .desktop-hint,
+    body.demo-presentation .footer-hint { display: none !important; }
+    body.demo-presentation h1 { font-size: 2.4rem; letter-spacing: -0.04em; }
+    body.demo-presentation .demo-header-sub { font-size: 13px; color: rgba(167,243,208,.65); }
+    body.demo-presentation #game-wrap { outline: 3px solid rgba(74,222,128,.35); outline-offset: 5px; }
+    body.demo-presentation #control-dock { position: static; margin-top: 14px; padding: 0; }
+    body.demo-presentation #control-dock button { max-width: 160px; min-height: 48px; font-size: 13px; }
+    #field-report-modal .finale-card { background: linear-gradient(160deg, rgba(6,78,59,.98), rgba(15,35,28,.99)); border: 2px solid rgba(74,222,128,.5); border-radius: 24px; max-width: 520px; width: 100%; padding: 28px; text-align: center; box-shadow: 0 40px 80px rgba(0,0,0,.55), 0 0 60px rgba(52,211,153,.12); }
+    #field-report-modal .finale-title { font-size: 1.75rem; font-weight: 700; color: #6ee7b7; margin-bottom: 6px; }
+    #field-report-modal .finale-sub { font-size: 13px; color: rgba(167,243,208,.75); margin-bottom: 16px; }
+    #field-report-modal .finale-stats { display: flex; gap: 12px; justify-content: center; margin: 16px 0; flex-wrap: wrap; }
+    #field-report-modal .finale-stat { padding: 10px 14px; border-radius: 14px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08); font-size: 12px; }
+    #field-report-modal .finale-stat strong { display: block; font-size: 18px; color: #a7f3d0; }
+    .boss-caller-glow { filter: drop-shadow(0 0 12px rgba(253,224,71,.85)); }
+    #boss-badge { font-size: 10px; color: #fde68a; margin-top: 2px; }
+    #guided-coach.boss-phase { border-color: rgba(253,224,71,.55); box-shadow: 0 20px 50px rgba(0,0,0,.45), 0 0 28px rgba(253,224,71,.12); }
+    #guided-coach.boss-phase .coach-title { color: #fde68a; }
+    #power-badge { font-size: 10px; color: #6ee7b7; margin-top: 2px; }
   </style>
 </head>
-<body class="p-6 max-w-5xl mx-auto">
+<body class="p-6 max-w-5xl mx-auto persona-liam">
+  <div id="training-disclaimer">
+    <button type="button" onclick="dismissTrainingDisclaimer()">✕</button>
+    <strong>Training note:</strong> Calls are procedurally synthesized for aiming practice — not field recordings.
+    Compare your SNR dB readout to real PAM noise floors (~12–20 dB marsh, ~8–12 dB forest).
+  </div>
   <div class="flex justify-between items-end mb-3">
     <div>
       <h1 class="text-5xl font-semibold tracking-tighter" id="title">Old Growth Forest</h1>
       <p class="text-emerald-400/70 text-sm">Click canvas or WASD to move • Hold 🎧 Listen (L) to aim • Record while listening • Use the dock below</p>
     </div>
     <div class="text-right text-sm">
-      <div>Species Logged: <span id="logged" class="font-mono text-emerald-400">0/6</span></div>
+      <div>Survey: <span id="logged" class="font-mono text-emerald-400">0/4</span> · Boss: <span id="boss-status" class="font-mono text-amber-200/80">—</span></div>
+      <div id="boss-badge" class="hidden"></div>
+      <div id="power-badge" class="hidden"></div>
       <div>Acoustic Integrity: <span id="integrity" class="font-mono text-amber-300">100</span>% <span id="best" class="text-[10px] text-emerald-300/50 ml-1"></span></div>
+      <div id="snr-meter" title="Estimated signal-to-noise from listen cone alignment">
+        <span class="text-emerald-300/70">SNR</span>
+        <span id="snr-db" class="font-mono text-emerald-400">--</span>
+        <span class="text-emerald-300/50">dB</span>
+        <div id="snr-bar"><div id="snr-fill" style="width:0%"></div></div>
+      </div>
       <div id="streak" class="text-[10px] text-emerald-300/60">streak <span id="streak-count">0</span></div>
       <div id="time-badge" class="inline-block mt-1 px-2.5 py-px rounded bg-emerald-900/70 text-xs font-mono tracking-[2px]">DAWN</div>
+      <div id="bioblitz-rare" class="hidden"></div>
+      <div id="progression-map" class="mt-1" aria-label="Habitat progress">
+        <span>Sites:</span>
+        <span class="hab-dot" id="prog-forest" title="Forest"></span>
+        <span class="hab-dot" id="prog-marsh" title="Marsh"></span>
+        <span class="hab-dot" id="prog-canyon" title="Canyon"></span>
+        <span id="prog-label">0/3</span>
+      </div>
     </div>
   </div>
 
@@ -76,11 +156,17 @@
       <button onclick="switchHabitat('canyon')" class="px-3.5 py-1 bg-white/5 hover:bg-white/10" id="tab-canyon">Canyon</button>
     </div>
     <div id="advanced-bar" class="hidden-advanced flex flex-wrap items-center gap-2">
-      <button onclick="advanceTime()" class="px-3 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5"><i class="fa fa-clock mr-1"></i> <span>Advance Time</span></button>
+      <button onclick="openPhenologyChart()" class="px-3 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5"><i class="fa fa-clock mr-1"></i> <span>Survey Schedule</span></button>
+      <span id="training-tools" class="hidden flex flex-wrap items-center gap-2">
+        <button onclick="exportClipManifest()" class="hidden px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10" id="export-manifest-btn" title="Download CSV manifest">⬇ Manifest</button>
+        <button id="song-meter-btn" onclick="openSongMeterSafari()" class="hidden px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10" title="Deploy Song Meter">📟 Song Meter</button>
+        <button id="kaleidoscope-btn" onclick="openKaleidoscope()" class="hidden px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10" title="Cluster clips like Kaleidoscope">🔬 Kaleidoscope</button>
+      </span>
       <button onclick="recordClip()" class="px-3 py-1 text-xs font-medium rounded-2xl bg-red-600 hover:bg-red-500 flex items-center gap-1.5"><i class="fa fa-microphone mr-1"></i> <span>RECORD CLIP</span></button>
       <button onclick="toggleMute()" id="mute-btn" class="px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-volume-up" id="mute-icon"></i></button>
       <button onclick="shareFieldReport()" id="share-btn" class="hidden px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-share-alt"></i> Report</button>
       <button onclick="copyPlaytestFeedback()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Feedback</button>
+      <button id="demo-mode-btn" onclick="toggleDemoMode()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10" title="Projector mode: 2× cone, larger labels">📽 Demo</button>
       <select id="persona" onchange="setPersona(this.value)" class="px-2 py-0.5 text-[10px] rounded bg-white/5 border border-white/10 text-emerald-200/80" title="Playtest persona">
         <option value="liam">Persona: Casual</option>
         <option value="aisha">Persona: Educator</option>
@@ -89,18 +175,18 @@
       </select>
     </div>
     <button onclick="showHelp()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Help</button>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v1.7 — vector species + tap spectrogram peaks. Dock guides first clip.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v2.3 — final-stretch coach · wider listen cone at expedition 2+</span>
   </div>
 
-  <div id="mission-bar" aria-label="Expedition steps">
-    <span class="step active" data-step="explore">① Explore</span>
-    <span class="step" data-step="listen">② Listen</span>
-    <span class="step" data-step="record">③ Record</span>
-    <span class="step" data-step="identify">④ Identify</span>
-    <span class="step" data-step="report">⑤ Field Report</span>
+  <div id="mission-bar" aria-label="Expedition story arc">
+    <span class="step active" data-step="act1" id="step-act1">① Survey the soundscape</span>
+    <span class="step" data-step="act2" id="step-act2">② Boss caller</span>
+    <span class="step" data-step="act3" id="step-act3">③ Field Report</span>
   </div>
 
-  <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
+  <div id="game-wrap">
+    <canvas id="game" width="880" height="620" class="w-full cursor-crosshair touch-none"></canvas>
+  </div>
 
   <div id="interactive-tutorial" class="hidden" role="dialog" aria-live="assertive">
     <div class="tutorial-title" id="tutorial-title">Your first clip</div>
@@ -108,10 +194,16 @@
     <div class="tutorial-progress"><div id="tutorial-progress-fill" style="width:0%"></div></div>
   </div>
 
+  <div id="guided-coach" class="hidden" role="complementary" aria-live="polite">
+    <div class="coach-title" id="coach-title">Final stretch</div>
+    <div class="coach-body" id="coach-body">You're close to clearing this site.</div>
+    <div class="coach-progress"><div id="coach-progress-fill" style="width:75%"></div></div>
+  </div>
+
   <div id="control-dock" aria-label="Primary controls">
     <button id="btn-listen" type="button" title="Hold to aim directional mic (L)">🎧 Listen</button>
     <button id="btn-record" type="button" class="record" title="Record clip while listening (R)" disabled>⏺ Record</button>
-    <button id="btn-time" type="button" title="Advance time of day (T)">⏱ Time</button>
+    <button id="btn-time" type="button" title="Open survey schedule / phenology chart (T)">⏱ Schedule</button>
   </div>
   <div id="toast" role="status"></div>
   <div id="audio-gate" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
@@ -119,7 +211,7 @@
   </div>
   <div id="nearest-hint" class="text-center text-[11px] text-emerald-300/60 mt-1 min-h-[16px]"></div>
 
-  <div class="mt-3 text-center text-xs text-emerald-300/50">Animals call on their own. Hold Listen for the green cone — calls get louder in stereo when you face them. Get close, record, identify to log + raise integrity.</div>
+  <div class="footer-hint mt-3 text-center text-xs text-emerald-300/50">Animals call on their own. Hold Listen for the green cone — calls get louder in stereo when you face them. Get close, record, identify to log + raise integrity.</div>
 
   <!-- Identify UI -->
   <div id="identify-panel" class="mt-4 hidden p-4 rounded-2xl bg-zinc-900 border border-white/10">
@@ -133,10 +225,75 @@
     <div id="spectro-hint">Tap the brightest peak on the spectrogram first</div>
     <div id="spectrogram" class="w-full bg-black/50 rounded mb-2 overflow-hidden" style="image-rendering: pixelated;"></div>
     <div id="identify-options" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2"></div>
-    <div class="mt-2 text-[10px] text-emerald-300/60">Tap the key frequency peak, then pick the species. Correct logs it + raises integrity.</div>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <span class="text-[10px] text-emerald-300/60">Tap the key frequency peak, then pick the species.</span>
+      <button type="button" id="spectrogram-share" class="hidden text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10" onclick="shareSpectrogramCard()">📷 Share spectrogram</button>
+    </div>
+    <div id="lore-card" class="hidden"></div>
   </div>
 
   <div id="journal" class="mt-4 p-4 bg-white/5 rounded-2xl text-sm hidden"></div>
+
+  <div id="song-meter-modal" class="tool-modal hidden" onclick="if (event.target.id === 'song-meter-modal') closeSongMeterSafari()">
+    <div class="card" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-3">
+        <div class="font-semibold text-emerald-300">Song Meter Safari — Field Deploy</div>
+        <button onclick="closeSongMeterSafari()" class="text-xs px-2">✕</button>
+      </div>
+      <p class="text-xs text-emerald-300/70 mb-3">Train deployment workflow: GPS pin → recording schedule → SD card → deploy.</p>
+      <div id="sm-step-gps" class="sm-step">
+        <div class="text-sm font-medium mb-1">① GPS pin</div>
+        <div class="text-[11px] text-white/60 mb-2">Tap the habitat map to set recorder location.</div>
+        <canvas id="sm-map" width="320" height="120" class="w-full rounded-lg border border-white/10 cursor-crosshair bg-black/40"></canvas>
+        <div id="sm-gps-status" class="text-[10px] text-emerald-300/60 mt-1">No pin set</div>
+      </div>
+      <div id="sm-step-schedule" class="sm-step">
+        <div class="text-sm font-medium mb-1">② Recording schedule</div>
+        <div class="flex flex-wrap gap-2 text-[11px]">
+          <label class="flex items-center gap-1"><input type="checkbox" id="sm-dawn" checked> Dawn chorus</label>
+          <label class="flex items-center gap-1"><input type="checkbox" id="sm-dusk" checked> Dusk</label>
+          <label class="flex items-center gap-1"><input type="checkbox" id="sm-night"> Night</label>
+        </div>
+      </div>
+      <div id="sm-step-sd" class="sm-step">
+        <div class="text-sm font-medium mb-1">③ Format SD card</div>
+        <button type="button" onclick="formatSongMeterSd()" class="px-3 py-1 text-xs rounded-xl bg-emerald-700/80 hover:bg-emerald-600">Format &amp; label ECHOES_001.WAV</button>
+        <div id="sm-sd-status" class="text-[10px] text-emerald-300/60 mt-1">SD not formatted</div>
+      </div>
+      <button type="button" onclick="deploySongMeter()" id="sm-deploy-btn" class="w-full mt-2 px-4 py-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm disabled:opacity-40" disabled>Deploy recorder</button>
+    </div>
+  </div>
+
+  <div id="phenology-modal" class="tool-modal hidden" onclick="if (event.target.id === 'phenology-modal') closePhenologyChart()">
+    <div class="card" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-3">
+        <div class="font-semibold text-emerald-300">Survey Schedule — Phenology Chart</div>
+        <button onclick="closePhenologyChart()" class="text-xs px-2">✕</button>
+      </div>
+      <p class="text-xs text-emerald-300/70 mb-3">Pick a recording window when target species are vocalizing — like a real Song Meter schedule, not a blind time skip.</p>
+      <div id="phenology-matrix" class="text-[10px] mb-3 overflow-x-auto"></div>
+      <div id="phenology-buttons" class="flex flex-wrap gap-2 mb-2"></div>
+      <div id="phenology-hint" class="text-[11px] text-emerald-300/80"></div>
+    </div>
+  </div>
+
+  <div id="kaleidoscope-modal" class="tool-modal hidden" onclick="if (event.target.id === 'kaleidoscope-modal') closeKaleidoscope()">
+    <div class="card" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-3">
+        <div class="font-semibold text-emerald-300">Kaleidoscope — Cluster your expedition clips</div>
+        <button onclick="closeKaleidoscope()" class="text-xs px-2">✕</button>
+      </div>
+      <p class="text-xs text-emerald-300/70 mb-2">Drag each clip into the matching species cluster (or Unknown).</p>
+      <div id="k-clip-pool" class="mb-3 min-h-[40px] p-2 rounded-lg bg-black/30 border border-white/10"></div>
+      <div class="grid grid-cols-2 gap-2 text-[11px]">
+        <div class="k-cluster" data-cluster="cardinal" ondragover="kDragOver(event)" ondrop="kDrop(event,'cardinal')"><strong class="text-red-300">Cardinal</strong><div class="k-drop"></div></div>
+        <div class="k-cluster" data-cluster="owl" ondragover="kDragOver(event)" ondrop="kDrop(event,'owl')"><strong class="text-amber-200">Owl</strong><div class="k-drop"></div></div>
+        <div class="k-cluster" data-cluster="peeper" ondragover="kDragOver(event)" ondrop="kDrop(event,'peeper')"><strong class="text-green-300">Peeper</strong><div class="k-drop"></div></div>
+        <div class="k-cluster" data-cluster="unknown" ondragover="kDragOver(event)" ondrop="kDrop(event,'unknown')"><strong class="text-white/60">Unknown</strong><div class="k-drop"></div></div>
+      </div>
+      <div id="k-result" class="text-[11px] text-emerald-300/80 mt-3"></div>
+    </div>
+  </div>
 
   <!-- Help Modal -->
   <div id="help-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50" onclick="if (event.target.id === 'help-modal') hideHelp()">
@@ -154,10 +311,27 @@
           <li>Press <span class="font-mono">R</span> or use RECORD CLIP while listening</li>
           <li>Choose the correct species in the identify cards (with spectrogram visual)</li>
           <li>Use tabs to switch habitats, <span class="font-mono">T</span> or button to change time of day</li>
-          <li>Complete 6/6 in a habitat for a special Field Report you can share</li>
+          <li>Log 4 survey species, then identify the boss caller for a cinematic Field Report you can share</li>
         </ul>
-        <p class="text-[10px]">For this playtest: Try to complete at least one full habitat. Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.7 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
+        <p class="text-[10px]">For this playtest: Try to complete at least one full expedition (4 + boss). Use the Feedback button at the end of your session. Feel free to think aloud.</p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v2.3 • July 2026 • Final-stretch coach, boss compass, wider listen cone at expedition 2+. Kaleidoscope for training personas at exp 3.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="field-report-modal" class="tool-modal hidden" onclick="if (event.target.id === 'field-report-modal') closeFieldReportFinale()">
+    <div class="finale-card" onclick="event.stopPropagation()">
+      <div class="finale-title" id="finale-title">Field Report Published</div>
+      <div class="finale-sub" id="finale-sub">Site survey complete — share your acoustic integrity score</div>
+      <div class="finale-stats">
+        <div class="finale-stat"><strong id="finale-integrity">100%</strong>Integrity</div>
+        <div class="finale-stat"><strong id="finale-species">4+1</strong>Species</div>
+        <div class="finale-stat"><strong id="finale-habitat">Forest</strong>Habitat</div>
+      </div>
+      <p class="text-xs text-emerald-300/80 mb-4" id="finale-learn"></p>
+      <div class="flex flex-wrap gap-2 justify-center">
+        <button type="button" onclick="shareFieldReport()" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-2xl text-sm">📋 Copy Field Report</button>
+        <button type="button" onclick="closeFieldReportFinale()" class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-sm">Keep exploring</button>
       </div>
     </div>
   </div>
@@ -177,7 +351,14 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.7-jul2026';
+    const BUILD_VERSION = 'playtest-v2.3-jul2026';
+    const EXPEDITION_REGULAR_TARGET = EchoesCore.EXPEDITION_REGULAR_TARGET;
+    const KALEIDOSCOPE_EXPEDITION_GATE = 3;
+    const SONG_METER_EXPEDITION_GATE = 2;
+    const CONE_WIDEN_EXPEDITION_GATE = 2;
+    const KALEIDOSCOPE_TRAINING_PERSONAS = ['aisha', 'elena', 'marcus'];
+    const urlParams = new URLSearchParams(location.search);
+    const presentationDemo = urlParams.get('demo') === '1';
     const DASH_ENABLED_EXPEDITION = 2;
     const TUTORIAL_STORAGE_KEY = 'echoes-tutorial-v2';
     const LISTEN_HOLD_TICKS = 50;
@@ -258,6 +439,7 @@
       ensureAudio();
       const gate = document.getElementById('audio-gate');
       if (gate) gate.classList.add('hidden');
+      startHabitatAmbient();
       showToast('Soundscape unlocked — hold 🎧 Listen and follow the compass!', 'good');
       startInteractiveTutorial();
     }
@@ -274,11 +456,99 @@
       return getExpeditionLevel() >= DASH_ENABLED_EXPEDITION;
     }
 
+    function getListenConeScale() {
+      if (demoMode) return 2;
+      const lvl = getExpeditionLevel();
+      let scale = 1;
+      if (lvl >= CONE_WIDEN_EXPEDITION_GATE) scale += 0.15;
+      if (lvl >= KALEIDOSCOPE_EXPEDITION_GATE) scale += 0.1;
+      return scale;
+    }
+
+    function updatePowerBadge() {
+      const el = document.getElementById('power-badge');
+      if (!el) return;
+      const lvl = getExpeditionLevel();
+      const scale = getListenConeScale();
+      if (lvl >= CONE_WIDEN_EXPEDITION_GATE && scale > 1 && !demoMode) {
+        el.classList.remove('hidden');
+        el.textContent = `Expedition ${lvl} · Listen cone +${Math.round((scale - 1) * 100)}%`;
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+
+    function getBossAnimal() {
+      const bossId = EchoesCore.getBossSpeciesId(gameState.habitat);
+      return animals.find((a) => a.id === bossId) || null;
+    }
+
+    function getCompassTarget() {
+      if (logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
+        const boss = getBossAnimal();
+        if (boss && boss.activity.includes(gameState.timeOfDay)) {
+          const dx = boss.x - player.x;
+          const dy = boss.y - player.y;
+          return { animal: boss, distance: Math.hypot(dx, dy) };
+        }
+      }
+      return EchoesCore.nearestActiveCaller(
+        { x: player.x, y: player.y },
+        animals,
+        gameState.timeOfDay
+      );
+    }
+
+    function updateFinalStretchCoach() {
+      const panel = document.getElementById('guided-coach');
+      if (!panel || presentationDemo) return;
+      const listenBtn = document.getElementById('btn-listen');
+      const recordBtn = document.getElementById('btn-record');
+      const clearPulse = () => {
+        listenBtn?.classList.remove('tutorial-pulse');
+        recordBtn?.classList.remove('tutorial-pulse');
+      };
+      if (expeditionComplete || bossLogged || tutorialActive) {
+        panel.classList.add('hidden');
+        panel.classList.remove('boss-phase');
+        clearPulse();
+        return;
+      }
+      const bossId = EchoesCore.getBossSpeciesId(gameState.habitat);
+      const bossSp = species.find((s) => s.id === bossId);
+      const title = document.getElementById('coach-title');
+      const body = document.getElementById('coach-body');
+      const fill = document.getElementById('coach-progress-fill');
+      if (logged === EXPEDITION_REGULAR_TARGET - 1) {
+        panel.classList.remove('hidden', 'boss-phase');
+        if (title) title.textContent = 'Final survey log';
+        if (body) body.textContent = 'One more species clears the survey. Hold 🎧 Listen, follow the compass, record a CLEAN clip, then identify.';
+        if (fill) fill.style.width = '75%';
+        listenBtn?.classList.add('tutorial-pulse');
+        recordBtn?.classList.remove('tutorial-pulse');
+      } else if (logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
+        panel.classList.remove('hidden');
+        panel.classList.add('boss-phase');
+        if (title) title.textContent = 'Act II — Boss caller';
+        if (body) {
+          body.textContent = `Time shifted for ${bossSp?.name || 'the boss'}. Follow the golden ring and compass ★ — hold Listen, record the signature call, identify to publish your Field Report.`;
+        }
+        if (fill) fill.style.width = '92%';
+        listenBtn?.classList.add('tutorial-pulse');
+        recordBtn?.classList.add('tutorial-pulse');
+      } else {
+        panel.classList.add('hidden');
+        panel.classList.remove('boss-phase');
+        clearPulse();
+      }
+    }
+
     function updateProgressiveDisclosure() {
       const bar = document.getElementById('advanced-bar');
       if (!bar) return;
       const show = logged >= 1 || getHabitatsDone().length >= 1 || localStorage.getItem(TUTORIAL_STORAGE_KEY) === '1';
       bar.classList.toggle('hidden-advanced', !show);
+      updateTrainingToolButtons();
     }
 
     function syncFromSession() {
@@ -287,6 +557,7 @@
       animals = session.animals;
       listenActive = s.listenActive;
       logged = s.logged;
+      bossLogged = s.bossLogged ?? false;
       integrity = s.integrity;
       gameState = s.gameState;
       currentClip = s.currentClip;
@@ -299,26 +570,536 @@
     function updateNearestHint() {
       const el = document.getElementById('nearest-hint');
       if (!el) return;
-      const nearest = EchoesCore.nearestActiveCaller(
-        { x: player.x, y: player.y },
-        animals,
-        gameState.timeOfDay
-      );
+      const nearest = getCompassTarget();
+      const bossHunt = logged >= EXPEDITION_REGULAR_TARGET && !bossLogged;
       if (nearest.animal) {
         const warmth = EchoesCore.computeCallWarmth(
           { x: player.x, y: player.y, facing: player.facing, listenActive },
           nearest.animal
         );
+        const snrDb = EchoesCore.computeSnrDb(
+          { x: player.x, y: player.y, facing: player.facing, listenActive },
+          nearest.animal,
+          listenActive
+        );
+        updateSnrMeter(snrDb, warmth.warmth);
         const warmthLabel = warmth.warmth >= 0.72 ? ' — getting warmer!' : (warmth.warmth >= 0.45 ? ' — keep listening' : '');
-        el.innerHTML = `📡 Nearest caller: ${nearest.animal.species.name} (${Math.round(nearest.distance)}m)${warmthLabel}<span id="warmth-badge">${listenActive ? Math.round(warmth.warmth * 100) + '% signal' : ''}</span>`;
+        const demoCls = demoMode ? ' demo-label' : '';
+        const prefix = bossHunt ? '★ Boss caller' : '📡 Nearest caller';
+        el.innerHTML = `${prefix}: <span class="${demoCls.trim()}">${nearest.animal.species.name}</span> (${Math.round(nearest.distance)}m) · ${snrDb} dB SNR${warmthLabel}<span id="warmth-badge">${listenActive ? Math.round(warmth.warmth * 100) + '% signal' : ''}</span>`;
       } else {
-        el.textContent = 'No active callers — use ⏱ Time in the dock when you unlock advanced controls';
+        updateSnrMeter(null, 0);
+        el.textContent = bossHunt
+          ? 'Boss caller quiet — hold Listen; time of day is set for the signature call'
+          : 'No active callers — use ⏱ Schedule in the dock';
       }
+    }
+
+    function updateSnrMeter(snrDb, warmth) {
+      const dbEl = document.getElementById('snr-db');
+      const fill = document.getElementById('snr-fill');
+      if (!dbEl) return;
+      if (snrDb == null) {
+        dbEl.textContent = '--';
+        if (fill) fill.style.width = '0%';
+        return;
+      }
+      dbEl.textContent = String(snrDb);
+      const pct = Math.max(0, Math.min(100, ((snrDb + 4) / 36) * 100));
+      if (fill) fill.style.width = pct + '%';
+      dbEl.className = 'font-mono ' + (snrDb >= 18 ? 'text-emerald-400' : snrDb >= 10 ? 'text-amber-300' : 'text-red-300');
+    }
+
+    function setupPresentationDemo() {
+      document.body.classList.add('demo-presentation');
+      try {
+        localStorage.setItem(TUTORIAL_STORAGE_KEY, '1');
+        localStorage.setItem('echoes-onboarding-v1', '1');
+        localStorage.setItem('echoes-disclaimer-dismissed', '1');
+        localStorage.setItem('echoes-playtest-seen-help', '1');
+      } catch (e) {}
+      dismissTrainingDisclaimer();
+      const disclaimer = document.getElementById('training-disclaimer');
+      if (disclaimer) disclaimer.classList.add('hidden');
+      const onboard = document.getElementById('onboard');
+      if (onboard) onboard.classList.add('hidden');
+      const help = document.getElementById('help-modal');
+      if (help) help.classList.add('hidden');
+      const gate = document.getElementById('audio-gate');
+      if (gate) gate.classList.add('hidden');
+      ensureAudio();
+      startHabitatAmbient();
+      if (!demoMode) toggleDemoMode();
+      session.gameState.timeOfDay = 'dusk';
+      gameState.timeOfDay = 'dusk';
+      document.getElementById('time-badge').textContent = timeLabels.dusk;
+      const nearest = EchoesCore.nearestActiveCaller({ x: player.x, y: player.y }, animals, 'dusk');
+      if (nearest.animal) {
+        const dx = nearest.animal.x - player.x;
+        const dy = nearest.animal.y - player.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const standOff = 95;
+        session.player.x = nearest.animal.x - (dx / dist) * standOff;
+        session.player.y = nearest.animal.y - (dy / dist) * standOff;
+        session.player.facing = Math.atan2(dy, dx);
+        session.player.vx = 0;
+        session.player.vy = 0;
+        syncFromSession();
+        mouse.listenDown = true;
+        const btnListen = document.getElementById('btn-listen');
+        if (btnListen) btnListen.classList.add('active');
+        nearest.animal.lastCall = performance.now();
+      }
+      updateNearestHint();
+      updateProgressiveDisclosure();
+    }
+
+    function toggleDemoMode() {
+      demoMode = !demoMode;
+      document.body.classList.toggle('demo-mode', demoMode);
+      const btn = document.getElementById('demo-mode-btn');
+      if (btn) {
+        btn.classList.toggle('bg-emerald-700/60', demoMode);
+        btn.textContent = demoMode ? '📽 Demo ON' : '📽 Demo';
+      }
+      try { localStorage.setItem('echoes-demo-mode', demoMode ? '1' : '0'); } catch (e) {}
+      if (!presentationDemo) {
+        showToast(demoMode ? 'Demo mode: 2× cone, larger labels, pause on identify' : 'Demo mode off', 'info');
+      }
+    }
+
+    function isTrainingPersona() {
+      return KALEIDOSCOPE_TRAINING_PERSONAS.includes(persona);
+    }
+
+    function isKaleidoscopeEligible() {
+      return isTrainingPersona() && getExpeditionLevel() >= KALEIDOSCOPE_EXPEDITION_GATE;
+    }
+
+    function isSongMeterEligible() {
+      return isTrainingPersona() && getExpeditionLevel() >= SONG_METER_EXPEDITION_GATE;
+    }
+
+    function updateTrainingToolButtons() {
+      const show = logged >= 1 || getHabitatsDone().length >= 1;
+      const expLevel = getExpeditionLevel();
+      const trainingRow = document.getElementById('training-tools');
+      const sm = document.getElementById('song-meter-btn');
+      const k = document.getElementById('kaleidoscope-btn');
+      const ex = document.getElementById('export-manifest-btn');
+      const trainingOn = show && isTrainingPersona();
+      if (trainingRow) trainingRow.classList.toggle('hidden', !trainingOn);
+      if (sm) sm.classList.toggle('hidden', !trainingOn || expLevel < SONG_METER_EXPEDITION_GATE);
+      if (k) k.classList.toggle('hidden', !isKaleidoscopeEligible());
+      if (ex) ex.classList.toggle('hidden', !trainingOn || journalEntries.length < 1);
+    }
+
+    function openSongMeterSafari() {
+      if (!isSongMeterEligible()) {
+        showToast(
+          !isTrainingPersona()
+            ? 'Song Meter deploy unlocks for Educator, Citizen scientist, or Pro biologist personas.'
+            : 'Complete one full habitat expedition to unlock Song Meter deploy.',
+          'info',
+        );
+        return;
+      }
+      const m = document.getElementById('song-meter-modal');
+      if (m) m.classList.remove('hidden');
+      songMeterGps = null;
+      songMeterSdFormatted = false;
+      drawSongMeterMap();
+      updateSongMeterDeployState();
+    }
+
+    function closeSongMeterSafari() {
+      const m = document.getElementById('song-meter-modal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function drawSongMeterMap() {
+      const cvs = document.getElementById('sm-map');
+      if (!cvs) return;
+      const c = cvs.getContext('2d');
+      c.fillStyle = '#07140f';
+      c.fillRect(0, 0, cvs.width, cvs.height);
+      c.strokeStyle = 'rgba(74,222,128,.25)';
+      for (let i = 0; i < 5; i++) {
+        c.beginPath(); c.moveTo(0, i * 30); c.lineTo(cvs.width, i * 30); c.stroke();
+      }
+      c.fillStyle = 'rgba(52,211,153,.35)';
+      c.font = '10px system-ui';
+      c.fillText(gameState.habitat.toUpperCase() + ' survey grid', 8, 14);
+      if (songMeterGps) {
+        c.fillStyle = '#ef4444';
+        c.beginPath(); c.arc(songMeterGps.x, songMeterGps.y, 6, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#a7f3d0';
+        c.fillText('SM-001', songMeterGps.x + 10, songMeterGps.y + 4);
+      }
+    }
+
+    function initSongMeterMapClick() {
+      const cvs = document.getElementById('sm-map');
+      if (!cvs || cvs._smBound) return;
+      cvs._smBound = true;
+      cvs.addEventListener('click', (e) => {
+        const rect = cvs.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (cvs.width / rect.width);
+        const y = (e.clientY - rect.top) * (cvs.height / rect.height);
+        songMeterGps = { x, y };
+        drawSongMeterMap();
+        const st = document.getElementById('sm-gps-status');
+        if (st) st.textContent = `Pin set: ${Math.round(x)}, ${Math.round(y)} · ${gameState.habitat}`;
+        document.getElementById('sm-step-gps')?.classList.add('done');
+        updateSongMeterDeployState();
+      });
+    }
+
+    function formatSongMeterSd() {
+      songMeterSdFormatted = true;
+      const st = document.getElementById('sm-sd-status');
+      if (st) st.textContent = 'SD formatted — ECHOES_001.WAV · 48kHz · 16-bit';
+      document.getElementById('sm-step-sd')?.classList.add('done');
+      updateSongMeterDeployState();
+      showToast('SD card formatted for Song Meter', 'good');
+    }
+
+    function updateSongMeterDeployState() {
+      const sched = document.getElementById('sm-dawn')?.checked || document.getElementById('sm-dusk')?.checked || document.getElementById('sm-night')?.checked;
+      const ready = songMeterGps && songMeterSdFormatted && sched;
+      const btn = document.getElementById('sm-deploy-btn');
+      if (btn) btn.disabled = !ready;
+      if (sched) document.getElementById('sm-step-schedule')?.classList.add('done');
+    }
+
+    function deploySongMeter() {
+      const slots = [];
+      if (document.getElementById('sm-dawn')?.checked) slots.push('dawn');
+      if (document.getElementById('sm-dusk')?.checked) slots.push('dusk');
+      if (document.getElementById('sm-night')?.checked) slots.push('night');
+      try { localStorage.setItem('echoes-song-meter-deployed', JSON.stringify({ habitat: gameState.habitat, gps: songMeterGps, slots, at: Date.now() })); } catch (e) {}
+      showToast(`Song Meter deployed — schedule: ${slots.join(', ')}`, 'good');
+      closeSongMeterSafari();
+    }
+
+    function openKaleidoscope() {
+      if (!isKaleidoscopeEligible()) {
+        const need = KALEIDOSCOPE_EXPEDITION_GATE - getExpeditionLevel();
+        const msg = !isTrainingPersona()
+          ? 'Kaleidoscope unlocks for Educator, Citizen scientist, or Pro biologist personas.'
+          : need > 0
+            ? `Complete ${need} more habitat${need > 1 ? 's' : ''} to unlock Kaleidoscope clustering.`
+            : 'Finish your first expedition to unlock Kaleidoscope.';
+        showToast(msg, 'info');
+        return;
+      }
+      const m = document.getElementById('kaleidoscope-modal');
+      if (m) m.classList.remove('hidden');
+      populateKaleidoscopeClips();
+    }
+
+    function closeKaleidoscope() {
+      const m = document.getElementById('kaleidoscope-modal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function populateKaleidoscopeClips() {
+      const pool = document.getElementById('k-clip-pool');
+      const result = document.getElementById('k-result');
+      if (!pool) return;
+      pool.innerHTML = '';
+      document.querySelectorAll('.k-drop').forEach((d) => { d.innerHTML = ''; });
+      kaleidoscopeClips = journalEntries.filter((e) => e.correct).slice(0, 4).map((e, i) => ({
+        id: 'kclip_' + i,
+        speciesId: e.species.id || e.species,
+        label: (typeof e.species === 'object' ? e.species.name : e.species) + ' · ' + Math.round((e.quality || 0.6) * 100) + '%',
+      }));
+      if (kaleidoscopeClips.length < 2) {
+        kaleidoscopeClips = [
+          { id: 'kclip_0', speciesId: 'cardinal', label: 'Northern Cardinal · 78%' },
+          { id: 'kclip_1', speciesId: 'owl', label: 'Barred Owl · 65%' },
+          { id: 'kclip_2', speciesId: 'peeper', label: 'Spring Peeper · 71%' },
+        ];
+      }
+      kaleidoscopeClips.forEach((clip) => {
+        const el = document.createElement('span');
+        el.className = 'k-clip';
+        el.draggable = true;
+        el.dataset.clipId = clip.id;
+        el.dataset.speciesId = clip.speciesId;
+        el.textContent = clip.label;
+        el.addEventListener('dragstart', (ev) => { kDragId = clip.id; el.classList.add('dragging'); ev.dataTransfer.setData('text/plain', clip.id); });
+        el.addEventListener('dragend', () => el.classList.remove('dragging'));
+        pool.appendChild(el);
+      });
+      if (result) {
+        result.textContent = journalEntries.filter((e) => e.correct).length >= 2
+          ? 'Drag your logged clips into species clusters — like Kaleidoscope auto-ID review.'
+          : 'Sample clips loaded — log more species in the field to cluster your own recordings.';
+      }
+    }
+
+    function kDragOver(ev) {
+      ev.preventDefault();
+      ev.currentTarget.classList.add('over');
+    }
+
+    function kDrop(ev, clusterId) {
+      ev.preventDefault();
+      ev.currentTarget.classList.remove('over');
+      const clipId = ev.dataTransfer.getData('text/plain') || kDragId;
+      const clip = kaleidoscopeClips.find((c) => c.id === clipId);
+      if (!clip) return;
+      const poolEl = document.querySelector(`#k-clip-pool [data-clip-id="${clipId}"]`);
+      if (poolEl) poolEl.remove();
+      const drop = ev.currentTarget.querySelector('.k-drop');
+      const tag = document.createElement('span');
+      tag.className = 'k-clip';
+      tag.textContent = clip.label;
+      drop.appendChild(tag);
+      const correct = clusterId === clip.speciesId;
+      const result = document.getElementById('k-result');
+      if (result) {
+        result.textContent = correct
+          ? `✓ ${clip.label} → ${clusterId} cluster (matches Kaleidoscope auto-ID)`
+          : `△ ${clip.label} in ${clusterId} — review in Kaleidoscope (false positive bucket)`;
+      }
+      checkKaleidoscopeComplete();
+    }
+
+    function checkKaleidoscopeComplete() {
+      const remaining = document.querySelectorAll('#k-clip-pool .k-clip').length;
+      if (remaining === 0) {
+        showToast('Kaleidoscope clustering complete — export ready', 'good');
+        try { localStorage.setItem('echoes-kaleidoscope-done', '1'); } catch (e) {}
+      }
+    }
+
+    function dismissTrainingDisclaimer() {
+      const el = document.getElementById('training-disclaimer');
+      if (el) el.classList.add('hidden');
+      try { localStorage.setItem('echoes-disclaimer-dismissed', '1'); } catch (e) {}
+    }
+
+    function applyPersonaDensity() {
+      document.body.classList.remove('persona-liam', 'persona-aisha', 'persona-marcus', 'persona-elena');
+      document.body.classList.add('persona-' + persona);
+      const hint = document.querySelector('.desktop-hint');
+      if (hint && persona === 'elena') {
+        hint.textContent = 'v1.9 — SNR dB · phenology · manifest · noise floor ' + (EchoesCore.HABITAT_NOISE_FLOOR[gameState.habitat] || 12) + ' dB';
+      }
+    }
+
+    function updateProgressionMap() {
+      const done = getHabitatsDone();
+      ['forest', 'marsh', 'canyon'].forEach((h) => {
+        const dot = document.getElementById('prog-' + h);
+        if (dot) dot.classList.toggle('done', done.includes(h));
+      });
+      const lbl = document.getElementById('prog-label');
+      if (lbl) lbl.textContent = done.length + '/3';
+    }
+
+    function updateBioBlitzRare() {
+      const rare = EchoesCore.dailyRareSpecies();
+      const el = document.getElementById('bioblitz-rare');
+      if (!el) return;
+      const loggedIds = journalEntries.filter((e) => e.correct).map((e) => (e.species.id || e.species));
+      if (loggedIds.includes(rare.id)) {
+        el.classList.add('hidden');
+        return;
+      }
+      el.classList.remove('hidden');
+      el.textContent = `★ BioBlitz today: ${rare.name} (+streak ${streak})`;
+    }
+
+    function openPhenologyChart() {
+      const m = document.getElementById('phenology-modal');
+      if (m) m.classList.remove('hidden');
+      renderPhenologyChart();
+    }
+
+    function closePhenologyChart() {
+      const m = document.getElementById('phenology-modal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function renderPhenologyChart() {
+      const matrixEl = document.getElementById('phenology-matrix');
+      const btnEl = document.getElementById('phenology-buttons');
+      const hintEl = document.getElementById('phenology-hint');
+      if (!matrixEl || !btnEl) return;
+      const matrix = EchoesCore.buildPhenologyMatrix(species);
+      const loggedIds = journalEntries.filter((e) => e.correct).map((e) => (e.species.id || e.species));
+      const suggestion = EchoesCore.suggestPhenologyTime({ speciesList: species, timeOfDay: gameState.timeOfDay, loggedIds });
+
+      let html = '<table class="w-full text-left"><tr><th class="p-1"></th>';
+      EchoesCore.TIME_ORDER.forEach((t) => { html += `<th class="p-1 uppercase text-emerald-300/70">${t}</th>`; });
+      html += '</tr>';
+      species.forEach((sp) => {
+        html += `<tr><td class="p-1 whitespace-nowrap" style="color:${sp.color}">${sp.name.split(' ').pop()}</td>`;
+        EchoesCore.TIME_ORDER.forEach((t) => {
+          const on = sp.activity.includes(t);
+          const need = on && !loggedIds.includes(sp.id);
+          html += `<td class="p-0.5"><span class="pheno-cell ${on ? 'on' : 'off'}" title="${on ? 'active' : 'quiet'}" style="${need ? 'box-shadow:0 0 0 1px #fde68a' : ''}"></span></td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</table>';
+      matrixEl.innerHTML = html;
+
+      btnEl.innerHTML = '';
+      EchoesCore.TIME_ORDER.forEach((t) => {
+        const row = matrix.find((r) => r.time === t);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pheno-time-btn' + (gameState.timeOfDay === t ? ' active' : '') + (suggestion.time === t ? ' suggested' : '');
+        b.textContent = t.toUpperCase() + ` (${row?.count || 0} callers)`;
+        b.onclick = () => advanceTimeTo(t);
+        btnEl.appendChild(b);
+      });
+
+      if (hintEl) {
+        const row = matrix.find((r) => r.time === suggestion.time);
+        hintEl.textContent = `Suggested window: ${suggestion.time.toUpperCase()} — ${row?.count || 0} species active` +
+          (loggedIds.length ? ` · ${loggedIds.length}/6 logged` : '');
+      }
+    }
+
+    function advanceTimeTo(targetTime) {
+      if (!targetTime || targetTime === gameState.timeOfDay) {
+        closePhenologyChart();
+        return;
+      }
+      ensureAudio();
+      while (gameState.timeOfDay !== targetTime) {
+        session.advanceTime();
+        syncFromSession();
+      }
+      document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
+      closePhenologyChart();
+      for (let k = 0; k < 7; k++) {
+        particles.push({ x: 200 + Math.random() * 480, y: 140 + Math.random() * 320, vx: (Math.random() - 0.5) * 0.7, vy: (Math.random() - 0.5) * 0.3 - 0.2, life: 19 + Math.random() * 11, size: 1.6, color: '#4ade8055' });
+      }
+      const active = animals.filter((a) => a.activity.includes(gameState.timeOfDay));
+      active.slice(0, 2).forEach((a, j) => {
+        a.lastCall = performance.now() - 200 * j;
+        const audio = EchoesCore.computeCallWarmth({ x: player.x, y: player.y, facing: player.facing, listenActive }, a);
+        playCall(a.species, audio.vol * 0.85, audio.pan, 1);
+      });
+      showToast(`Survey window: ${timeLabels[gameState.timeOfDay]} — check phenology chart for active species`, 'info');
+      updateNearestHint();
+    }
+
+    function showSpeciesLore(speciesId) {
+      const lore = EchoesCore.SPECIES_LORE[speciesId];
+      const el = document.getElementById('lore-card');
+      if (!lore || !el) return;
+      el.classList.remove('hidden');
+      el.innerHTML = `<strong class="text-emerald-300">Call structure:</strong> ${lore.structure}<br>` +
+        `<span class="text-white/60">Duty cycle:</span> ${lore.duty}<br>` +
+        `<span class="text-emerald-300/80">Field tip:</span> ${lore.tip}`;
+      setTimeout(() => el.classList.add('hidden'), 8000);
+    }
+
+    function exportClipManifest() {
+      const entries = journalEntries.map((e) => ({
+        ...e,
+        species: typeof e.species === 'object' ? e.species : { id: e.species, name: e.species },
+      }));
+      const csv = EchoesCore.buildClipManifest(entries, { habitat: gameState.habitat });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `echoes-manifest-${gameState.habitat}-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('Clip manifest downloaded (CSV)', 'good');
+    }
+
+    function shareSpectrogramCard() {
+      if (!expeditionComplete) {
+        showToast('Complete your Field Report before sharing spectrograms.', 'info');
+        return;
+      }
+      const clip = lastSharedClip || currentClip;
+      if (!clip) return;
+      const cvs = document.createElement('canvas');
+      cvs.width = 480;
+      cvs.height = 200;
+      const c = cvs.getContext('2d');
+      c.fillStyle = '#07140f';
+      c.fillRect(0, 0, cvs.width, cvs.height);
+      c.fillStyle = '#6ee7b7';
+      c.font = 'bold 14px system-ui';
+      c.fillText('ECHOES Field Clip', 16, 28);
+      c.font = '11px system-ui';
+      c.fillStyle = '#a7f3d0';
+      c.fillText(`${clip.dominant.name} · ${timeLabels[clip.timeOfDay]} · ${EchoesCore.qualityLabel(clip.quality)}`, 16, 48);
+      const peaks = EchoesCore.buildSpectrogramPeaks(clip);
+      for (let x = 0; x < 440; x += 2) {
+        const t = x / 440;
+        let h = 10 + Math.sin(t * 14) * 8;
+        c.fillStyle = 'rgba(30,50,40,0.9)';
+        c.fillRect(20 + x, 100 - h / 2, 2, h);
+      }
+      peaks.forEach((peak) => {
+        const px = 20 + peak.xNorm * 440;
+        const ph = peak.height * 40;
+        c.fillStyle = peak.isKey ? '#4ade80' : 'rgba(74,222,128,0.4)';
+        c.beginPath();
+        c.ellipse(px, 100 - ph / 2, 6, ph / 2, 0, 0, Math.PI * 2);
+        c.fill();
+      });
+      c.fillStyle = 'rgba(167,243,208,0.5)';
+      c.font = '9px system-ui';
+      c.fillText(BUILD_VERSION + ' · echoes-wild', 16, 185);
+      cvs.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `echoes-spectrogram-${clip.dominant.id}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('Spectrogram card saved — share like XC', 'good');
+      });
+    }
+
+    function startHabitatAmbient() {
+      if (!audioContext || isMuted) return;
+      stopHabitatAmbient();
+      const floor = EchoesCore.HABITAT_NOISE_FLOOR[gameState.habitat] || 12;
+      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 2, audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (floor / 28);
+      const src = audioContext.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      const filter = audioContext.createBiquadFilter();
+      filter.type = gameState.habitat === 'marsh' ? 'bandpass' : (gameState.habitat === 'canyon' ? 'highpass' : 'lowpass');
+      filter.frequency.value = gameState.habitat === 'marsh' ? 420 : (gameState.habitat === 'canyon' ? 180 : 320);
+      const g = audioContext.createGain();
+      g.gain.value = 0.12 * (floor / 14);
+      src.connect(filter);
+      filter.connect(g);
+      g.connect(masterGain);
+      src.start();
+      ambientNode = { src, g };
+    }
+
+    function stopHabitatAmbient() {
+      if (ambientNode?.src) {
+        try { ambientNode.src.stop(); } catch (e) {}
+      }
+      ambientNode = null;
     }
 
     function setPersona(v) {
       persona = v;
       try { localStorage.setItem('echoes-persona', v); } catch (e) {}
+      applyPersonaDensity();
+      updateTrainingToolButtons();
+      if (v === 'liam') closeKaleidoscope();
     }
 
     function getHabitatsDone() {
@@ -335,31 +1116,136 @@
     }
 
     const ONBOARD_STEPS = [
-      { title: 'Your expedition', body: 'You are a field acoustics researcher. Log 6 species in this habitat to publish your Field Report. Follow the mission bar and coach below the map.' },
-      { title: 'Listen → Record → Identify', body: 'Use the bottom dock: hold 🎧 Listen to aim the green cone at glowing callers. Then tap ⏺ Record. Pick the species card (★ = best match on fair clips).' },
-      { title: 'Complete + share', body: 'Log 6/6 species, copy your Field Report, try Marsh or Canyon. The compass arrow on the map points to the nearest active caller.' }
+      { title: 'Your expedition', body: 'Three acts: survey 4 callers, nail the habitat boss species, publish your Field Report. ~18 minutes — story beats, not a checklist.' },
+      { title: 'Listen → Record → Identify', body: 'Hold 🎧 Listen to aim the green cone. Record, tap the spectrogram peak, pick ★ Most likely. Wrong IDs cost integrity but teach you something.' },
+      { title: 'Boss + share', body: 'After 4 logs, Act II unlocks the boss caller (owl in Forest). Log it to open your cinematic Field Report — share unlocks only then.' }
     ];
 
     const TUTORIAL_STEPS = [
       { title: 'Step 1: Hold Listen', body: 'Press and hold 🎧 Listen for 2 seconds. Follow the compass arrow — calls get louder when you face the caller.', target: 'btn-listen', progress: 25 },
       { title: 'Step 2: Record the call', body: 'While listening, tap ⏺ Record. Get close and face the animal for a CLEAN clip.', target: 'btn-record', progress: 50 },
       { title: 'Step 3: Identify', body: 'Tap the bright peak on the spectrogram, then the ★ Most likely species card.', target: 'identify-panel', progress: 85 },
-      { title: 'First clip complete!', body: 'You learned the core loop. Log 6 species to publish your Field Report.', progress: 100 },
+      { title: 'First clip complete!', body: 'Core loop learned. Survey 4 species, then find the boss caller for your Field Report.', progress: 100 },
     ];
     let tutorialStep = 0;
     let tutorialListenTicks = 0;
     let tutorialActive = false;
 
-    function updateMissionBar(phase) {
+    function updateExpeditionHud() {
+      const logEl = document.getElementById('logged');
+      const bossEl = document.getElementById('boss-status');
+      const bossBadge = document.getElementById('boss-badge');
+      const act1 = document.getElementById('step-act1');
+      if (logEl) logEl.textContent = `${logged}/${EXPEDITION_REGULAR_TARGET}`;
+      const bossName = EchoesCore.getBossSpeciesId(gameState.habitat);
+      const bossSp = species.find((s) => s.id === bossName);
+      if (bossEl) bossEl.textContent = bossLogged ? '✓' : (logged >= EXPEDITION_REGULAR_TARGET ? '!' : '—');
+      if (bossBadge) {
+        if (logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
+          bossBadge.classList.remove('hidden');
+          bossBadge.textContent = `★ Act II — find the ${bossSp?.name || 'boss caller'}`;
+        } else {
+          bossBadge.classList.add('hidden');
+        }
+      }
+      if (act1) act1.textContent = `① Survey (${logged}/${EXPEDITION_REGULAR_TARGET})`;
+      updateMissionBar();
+      updateFinalStretchCoach();
+      updatePowerBadge();
+    }
+
+    function updateMissionBar() {
+      const phase = EchoesCore.expeditionPhase(logged, bossLogged, gameState.habitat);
       const steps = document.querySelectorAll('#mission-bar .step');
-      const order = ['explore', 'listen', 'record', 'identify', 'report'];
-      const idx = order.indexOf(phase);
+      const order = ['act1', 'act2', 'act3'];
+      const idx = phase === 'explore' || phase === 'survey' ? 0 : phase === 'boss' ? 1 : 2;
       steps.forEach((el, i) => {
         el.classList.remove('active', 'done');
         if (i < idx) el.classList.add('done');
         else if (i === idx) el.classList.add('active');
       });
-      if (phase === 'report' && logged >= 6) steps.forEach(el => el.classList.add('done'));
+      if (phase === 'complete') steps.forEach((el) => el.classList.add('done'));
+    }
+
+    function enterBossPhase() {
+      if (bossPhaseActive || bossLogged) return;
+      bossPhaseActive = true;
+      const bossId = EchoesCore.getBossSpeciesId(gameState.habitat);
+      const bossSp = species.find((s) => s.id === bossId);
+      const bossTod = bossId === 'owl' ? 'dusk' : bossId === 'peeper' ? 'night' : 'day';
+      if (session) {
+        session.gameState.timeOfDay = bossTod;
+        gameState.timeOfDay = bossTod;
+      }
+      document.getElementById('time-badge').textContent = timeLabels[bossTod];
+      const bossAnimal = animals.find((a) => a.id === bossId);
+      if (bossAnimal) {
+        bossAnimal.lastCall = performance.now();
+        bossAnimal.x = 440 + (Math.random() - 0.5) * 80;
+        bossAnimal.y = 280 + (Math.random() - 0.5) * 60;
+      }
+      playHeroCall(gameState.habitat);
+      showToast(`Act II — ${bossSp?.name || 'Boss caller'} on the soundscape. Follow the coach + golden ring!`, 'good');
+      updateExpeditionHud();
+      updateMissionBar();
+      updateFinalStretchCoach();
+      if (bossAnimal) {
+        const dx = bossAnimal.x - player.x;
+        const dy = bossAnimal.y - player.y;
+        player.facing = Math.atan2(dy, dx);
+      }
+    }
+
+    function playHeroCall(habitat) {
+      ensureAudio();
+      const bossId = EchoesCore.getBossSpeciesId(habitat);
+      const bossSp = species.find((s) => s.id === bossId) || { id: bossId, name: 'Boss' };
+      if (habitat === 'forest' && bossId === 'owl') {
+        for (let pair = 0; pair < 2; pair++) {
+          setTimeout(() => {
+            playCall(bossSp, 0.95, pair === 0 ? -0.35 : 0.35, 1);
+            setTimeout(() => playCall(bossSp, 0.72, pair === 0 ? 0.25 : -0.2, 1), 480);
+          }, pair * 1100);
+        }
+      } else if (habitat === 'marsh' && bossId === 'peeper') {
+        for (let i = 0; i < 12; i++) {
+          setTimeout(() => playCall(bossSp, 0.55 + Math.random() * 0.25, (Math.random() - 0.5) * 0.8, 1), i * 90);
+        }
+      } else if (habitat === 'canyon' && bossId === 'woodpecker') {
+        for (let round = 0; round < 3; round++) {
+          setTimeout(() => playCall(bossSp, 0.88, round % 2 ? 0.4 : -0.4, 1), round * 420);
+        }
+      } else {
+        playCall(bossSp, 0.9, 0, 1);
+      }
+    }
+
+    function openFieldReportFinale() {
+      expeditionComplete = true;
+      const modal = document.getElementById('field-report-modal');
+      const correctOnes = journalEntries.filter((e) => e.correct);
+      const habitatName = document.getElementById('title')?.textContent || 'Habitat';
+      document.getElementById('finale-title').textContent = 'Field Report Published ✓';
+      document.getElementById('finale-sub').textContent = `${habitatName} site survey cleared`;
+      document.getElementById('finale-integrity').textContent = integrity + '%';
+      document.getElementById('finale-species').textContent = `${logged}+boss`;
+      document.getElementById('finale-habitat').textContent = gameState.habitat;
+      document.getElementById('finale-learn').textContent = personaHint('learn') + ' Share your report — you earned it.';
+      if (modal) modal.classList.remove('hidden');
+      const shareBtn = document.getElementById('share-btn');
+      if (shareBtn) shareBtn.classList.remove('hidden');
+    }
+
+    function closeFieldReportFinale() {
+      document.getElementById('field-report-modal')?.classList.add('hidden');
+    }
+
+    function showSpeciesMissLore(dominantId, guessName) {
+      const lore = EchoesCore.SPECIES_LORE[dominantId];
+      const card = document.getElementById('lore-card');
+      if (!card || !lore) return;
+      card.classList.remove('hidden');
+      card.innerHTML = `<strong>Not quite — that was ${species.find((s) => s.id === dominantId)?.name || 'another caller'}.</strong> You picked ${guessName}. <em>${lore.tip}</em>`;
     }
 
     function clearTutorialPulse() {
@@ -391,7 +1277,7 @@
       tutorialListenTicks = 0;
       setRecordDockEnabled(false);
       renderTutorial();
-      updateMissionBar('explore');
+      updateMissionBar();
     }
 
     function showTutorialConfetti() {
@@ -416,12 +1302,12 @@
       if (check === 'listen' && tutorialStep === 0 && tutorialListenTicks >= LISTEN_HOLD_TICKS) {
         tutorialStep = 1;
         renderTutorial();
-        updateMissionBar('listen');
+        updateMissionBar();
       }
       if (check === 'record' && tutorialStep === 1) {
         tutorialStep = 2;
         renderTutorial();
-        updateMissionBar('record');
+        updateMissionBar();
       }
       if (check === 'identify' && tutorialStep === 2) {
         tutorialStep = 3;
@@ -513,6 +1399,9 @@
     let lastFrame = performance.now();
     let listenActive = false;
     let logged = 0;
+    let bossLogged = false;
+    let expeditionComplete = false;
+    let bossPhaseActive = false;
     let integrity = 100;
     let gameState = { habitat: 'forest', timeOfDay: 'dawn' };
     let currentClip = null;
@@ -522,6 +1411,14 @@
     let sessionStart = Date.now();
     let hintTick = 0;
     let spectroPeakTapped = false;
+    let demoMode = false;
+    let identifyPaused = false;
+    let songMeterGps = null;
+    let songMeterSdFormatted = false;
+    let kaleidoscopeClips = [];
+    let kDragId = null;
+    let ambientNode = null;
+    let lastSharedClip = null;
 
     const timeOrder = ['dawn', 'day', 'dusk', 'night'];
     const timeLabels = { dawn: 'DAWN', day: 'DAY', dusk: 'DUSK', night: 'NIGHT' };
@@ -692,7 +1589,9 @@
     function switchHabitat(h) {
       session.switchHabitat(h);
       syncFromSession();
-      document.getElementById('logged').textContent = '0/6';
+      expeditionComplete = false;
+      bossPhaseActive = false;
+      updateExpeditionHud();
       document.getElementById('integrity').textContent = '100';
       document.getElementById('journal').innerHTML = '';
       document.getElementById('journal').classList.add('hidden');
@@ -709,31 +1608,19 @@
       particles = [];
       animals.forEach((a,i) => { a.lastCall = performance.now() - 600 * i; });
       updateBestDisplay();
+      startHabitatAmbient();
+      applyPersonaDensity();
     }
 
     function advanceTime() {
-      ensureAudio();
-      session.advanceTime();
-      syncFromSession();
-      document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
-      // fresh particles + trigger some calls visible
-      for (let k = 0; k < 7; k++) {
-        particles.push({ x: 200 + Math.random()*480, y: 140 + Math.random()*320, vx: (Math.random()-0.5)*0.7, vy:(Math.random()-0.5)*0.3-0.2, life: 19 + Math.random()*11, size: 1.6, color: '#4ade8055' });
-      }
-      // immediate calls from currently active
-      const active = animals.filter(a => a.activity.includes(gameState.timeOfDay));
-      active.slice(0, 2).forEach((a, j) => {
-        a.lastCall = performance.now() - 200 * j;
-        const audio = EchoesCore.computeCallWarmth(
-          { x: player.x, y: player.y, facing: player.facing, listenActive },
-          a
-        );
-        playCall(a.species, audio.vol * 0.85, audio.pan, 1);
-      });
+      openPhenologyChart();
     }
 
     <!-- PURE_HELPERS_START -->
     /* AUTO-INJECTED by tools/build-browser-core.mjs — pure field-loop helpers in shipped source */
+    function getBossSpeciesId(habitat = 'forest') {
+      return EchoesCore.BOSS_SPECIES_BY_HABITAT[habitat] || 'owl';
+    }
     function angleDiff(dir, facing) {
       return Math.abs(((dir - facing + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
     }
@@ -756,27 +1643,62 @@
     function integrityLoss(quality) {
       return quality > 0.7 ? 8 : 4;
     }
-    function applyIdentification({ chosenId, dominantId, quality, logged, integrity }) {
+    function applyIdentification({
+      chosenId,
+      dominantId,
+      quality,
+      logged,
+      integrity,
+      bossLogged = false,
+      habitat = 'forest',
+    }) {
       const correct = chosenId === dominantId;
+      const bossId = getBossSpeciesId(habitat);
+      const isBoss = dominantId === bossId;
+    
       if (correct) {
         const gain = integrityGain(quality);
+        if (isBoss && logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
+          return {
+            correct: true,
+            logged,
+            bossLogged: true,
+            integrity: Math.min(100, integrity + gain + 5),
+            delta: gain + 5,
+            isBoss: true,
+          };
+        }
+        if (logged >= EXPEDITION_REGULAR_TARGET && !isBoss) {
+          return {
+            correct: true,
+            logged,
+            bossLogged,
+            integrity: Math.min(100, integrity + Math.max(2, Math.floor(gain / 2))),
+            delta: Math.max(2, Math.floor(gain / 2)),
+            bonusLog: true,
+          };
+        }
         return {
           correct: true,
-          logged: Math.min(6, logged + 1),
+          logged: Math.min(EXPEDITION_REGULAR_TARGET, logged + 1),
+          bossLogged,
           integrity: Math.min(100, integrity + gain),
           delta: gain,
+          isBossEarly: isBoss && logged < EXPEDITION_REGULAR_TARGET,
         };
       }
       const loss = integrityLoss(quality);
       return {
         correct: false,
         logged,
+        bossLogged,
         integrity: Math.max(35, integrity - loss),
         delta: -loss,
+        missSpeciesId: dominantId,
       };
     }
-    function shouldCompleteExpedition(logged) {
-      return logged >= 6;
+    function shouldCompleteExpedition(logged, bossLogged = false) {
+      return logged >= EXPEDITION_REGULAR_TARGET && bossLogged;
     }
     <!-- PURE_HELPERS_END -->
 
@@ -823,7 +1745,7 @@
         particles.push({ x: best.x + (Math.random() - 0.5) * 18, y: best.y + (Math.random() - 0.5) * 18, vx: (Math.random() - 0.5) * 2.2, vy: (Math.random() - 0.5) * 1.8 - 0.6, life: 14, size: 2.8, color: best.species.color });
       }
       playCall(best.species, 0.95 * clip.quality, (best.x - player.x) / 580, 1);
-      updateMissionBar('record');
+      updateMissionBar();
       advanceTutorial('record');
       showIdentifyUI(clip);
       return clip;
@@ -840,6 +1762,8 @@
         quality: q,
         logged,
         integrity,
+        bossLogged,
+        habitat: gameState.habitat,
       });
       const outcome = session.identify(chosenId);
       syncFromSession();
@@ -847,26 +1771,53 @@
       if (preview.correct !== outcome.correct || preview.logged !== outcome.logged) {
         console.warn('[ECHOES] identify preview/session mismatch');
       }
-      document.getElementById('logged').textContent = logged + '/6';
+      bossLogged = outcome.bossLogged ?? bossLogged;
+      if (session) session.bossLogged = bossLogged;
+      updateExpeditionHud();
       if (outcome.correct) {
-        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
+        const snrAtRec = EchoesCore.computeSnrDb(
+          { x: player.x, y: player.y, facing: player.facing, listenActive: true },
+          animals.find((a) => a.id === clip.dominant.id) || { x: player.x + 40, y: player.y },
+          true
+        );
+        const likelyBtn = document.querySelector('#identify-options button[data-likely="1"]');
+        const confidence = likelyBtn
+          ? parseInt(likelyBtn.dataset.confidence, 10)
+          : EchoesCore.computeIdConfidence({ quality: q, peakTapped: spectroPeakTapped, isLikely: true });
+        journalEntries.unshift({
+          species: clip.dominant,
+          time: clip.timeOfDay,
+          quality: q,
+          correct: true,
+          snrDb: snrAtRec,
+          confidence,
+          timestamp: new Date().toISOString(),
+        });
+        showSpeciesLore(clip.dominant.id);
+        updateBioBlitzRare();
         playCall(clip.dominant, 0.6, 0, 1);
-        if (logged === 5) {
-          showToast(`✓ ${clip.dominant.name} logged — one more for your Field Report!`, 'good');
-        } else if (logged === 4) {
-          showToast(`✓ ${clip.dominant.name} logged — final stretch: 2 more for Field Report!`, 'good');
+        if (outcome.isBoss) {
+          showToast(`✓ ${clip.dominant.name} boss logged — opening Field Report!`, 'good');
+          playHeroCall(gameState.habitat);
+        } else if (outcome.isBossEarly) {
+          showToast(`✓ ${clip.dominant.name} logged early — survey ${logged}/${EXPEDITION_REGULAR_TARGET} first for the boss act`, 'info');
+        } else if (logged === EXPEDITION_REGULAR_TARGET && !bossLogged) {
+          showToast(`✓ Survey complete (${EXPEDITION_REGULAR_TARGET}/${EXPEDITION_REGULAR_TARGET}) — Act II: boss caller!`, 'good');
+          setTimeout(() => enterBossPhase(), 600);
+        } else if (outcome.bonusLog) {
+          showToast(`✓ ${clip.dominant.name} — bonus log. Find the boss caller for your Field Report.`, 'info');
         } else {
           showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
         }
-        const shareBtn = document.getElementById('share-btn');
-        if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
         advanceTutorial('identify');
-        updateMissionBar(logged >= 6 ? 'report' : 'explore');
+        updateMissionBar();
         setRecordDockEnabled(false);
         tutorialListenTicks = 0;
         updateProgressiveDisclosure();
       } else {
-        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s => s.id === chosenId).name });
+        const guessName = species.find((s) => s.id === chosenId)?.name || chosenId;
+        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: guessName });
+        showSpeciesMissLore(clip.dominant.id, guessName);
         showToast(`${personaHint('miss')} (−${Math.abs(outcome.delta)}% integrity)`, 'warn');
       }
       document.getElementById('integrity').textContent = integrity;
@@ -879,20 +1830,29 @@
         updateBestDisplay();
       } catch (e) {}
       updateJournal();
+      updateTrainingToolButtons();
       panel.classList.remove('block');
       panel.classList.add('hidden');
       currentClip = null;
-      if (shouldCompleteExpedition(logged)) {
+      identifyPaused = false;
+      if (shouldCompleteExpedition(logged, bossLogged)) {
         setTimeout(() => fieldLoopComplete(), 450);
       }
       return outcome;
     }
 
     function fieldLoopComplete() {
+      expeditionComplete = true;
+      updateFinalStretchCoach();
+      openFieldReportFinale();
       showExpeditionComplete();
     }
 
     function update() {
+      if (identifyPaused) {
+        lastFrame = performance.now();
+        return;
+      }
       const now = performance.now();
       const dt = (now - lastFrame) / 16;
       const prevDashing = isDashing;
@@ -903,7 +1863,7 @@
         if (tutorialListenTicks >= LISTEN_HOLD_TICKS) {
           setRecordDockEnabled(true);
           advanceTutorial('listen');
-          if (!tutorialActive) updateMissionBar('listen');
+          if (!tutorialActive) updateMissionBar();
         }
       }
       wasMouseDown = mouse.down;
@@ -1041,52 +2001,314 @@
       ctx.shadowBlur = 0;
     }
 
-    function drawEnhancedHabitat(w, h) {
-      const sky = ctx.createLinearGradient(0, 0, 0, h);
-      if (gameState.habitat === 'marsh') {
-        sky.addColorStop(0, '#0a1f2e'); sky.addColorStop(1, '#0a2622');
-      } else if (gameState.habitat === 'canyon') {
-        sky.addColorStop(0, '#2a1810'); sky.addColorStop(1, '#1a120c');
-      } else {
-        sky.addColorStop(0, '#0c2838'); sky.addColorStop(1, '#07140f');
-      }
+    function habitatSkyStops(tod, habitat) {
+      const palettes = {
+        forest: {
+          dawn: ['#1a3a52', '#5c3d2e', '#0c2119'],
+          day: ['#3d7ea6', '#6aaf8a', '#0e2a1c'],
+          dusk: ['#2a1848', '#6b3a28', '#0a1812'],
+          night: ['#060d14', '#0f1a28', '#050c0a'],
+        },
+        marsh: {
+          dawn: ['#143040', '#4a5a38', '#0a2622'],
+          day: ['#2a6078', '#5a8a6a', '#0a3028'],
+          dusk: ['#1e2848', '#4a3828', '#081a16'],
+          night: ['#050f18', '#0a1820', '#050f0c'],
+        },
+        canyon: {
+          dawn: ['#3a2818', '#8a5030', '#1a120c'],
+          day: ['#6a4830', '#c08050', '#2a2116'],
+          dusk: ['#2a1428', '#7a4028', '#1a100c'],
+          night: ['#120a08', '#281810', '#0a0806'],
+        },
+      };
+      const hab = palettes[habitat] || palettes.forest;
+      return hab[tod] || hab.dawn;
+    }
+
+    function drawSky(w, h, stops) {
+      const sky = ctx.createLinearGradient(0, 0, 0, h * 0.72);
+      sky.addColorStop(0, stops[0]);
+      sky.addColorStop(0.55, stops[1]);
+      sky.addColorStop(1, stops[2]);
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, w, h);
-      const ground = gameState.habitat === 'marsh' ? '#0a2622' : (gameState.habitat === 'canyon' ? '#2a2116' : '#0c2119');
-      ctx.fillStyle = ground;
-      ctx.fillRect(0, 95, w, 530);
-      ctx.fillStyle = 'rgba(255,255,255,0.02)';
-      for (let i = 0; i < 12; i++) ctx.fillRect(i * 74, 120 + (i % 3) * 40, 60, 2);
-      if (gameState.habitat === 'marsh') {
-        ctx.fillStyle = '#1a4a3a';
-        for (let i = 0; i < 18; i++) {
-          const rx = 40 + i * 48;
-          ctx.fillRect(rx, 380, 6, 90 + (i % 4) * 12);
-          ctx.beginPath(); ctx.ellipse(rx + 3, 370, 14, 8, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    function drawCelestial(w, h, tod) {
+      const cx = tod === 'dawn' ? w * 0.78 : tod === 'dusk' ? w * 0.18 : w * 0.82;
+      const cy = tod === 'night' ? h * 0.14 : h * 0.2;
+      if (tod === 'night') {
+        for (let i = 0; i < 48; i++) {
+          const sx = (i * 137 + 41) % w;
+          const sy = (i * 89 + 17) % (h * 0.45);
+          ctx.fillStyle = `rgba(255,255,255,${0.25 + (i % 5) * 0.12})`;
+          ctx.fillRect(sx, sy, 1.2 + (i % 3), 1.2 + (i % 3));
         }
-      } else if (gameState.habitat === 'canyon') {
-        ctx.fillStyle = '#4a3528';
-        ctx.beginPath(); ctx.moveTo(0, 200); ctx.lineTo(200, 140); ctx.lineTo(400, 220); ctx.lineTo(0, 280); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(480, 160); ctx.lineTo(880, 120); ctx.lineTo(880, 300); ctx.lineTo(520, 260); ctx.fill();
+        const moon = ctx.createRadialGradient(cx, cy, 2, cx, cy, 28);
+        moon.addColorStop(0, 'rgba(240,248,255,0.95)');
+        moon.addColorStop(0.6, 'rgba(200,220,240,0.35)');
+        moon.addColorStop(1, 'rgba(200,220,240,0)');
+        ctx.fillStyle = moon;
+        ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.fill();
+      } else if (tod === 'dawn' || tod === 'dusk') {
+        const sun = ctx.createRadialGradient(cx, cy, 4, cx, cy, 72);
+        sun.addColorStop(0, tod === 'dawn' ? 'rgba(255,200,120,0.9)' : 'rgba(255,140,80,0.85)');
+        sun.addColorStop(0.35, tod === 'dawn' ? 'rgba(255,160,80,0.35)' : 'rgba(220,90,50,0.3)');
+        sun.addColorStop(1, 'rgba(255,120,60,0)');
+        ctx.fillStyle = sun;
+        ctx.beginPath(); ctx.arc(cx, cy, 68, 0, Math.PI * 2); ctx.fill();
       }
-      const treeColor = gameState.habitat === 'canyon' ? '#3f2a1f' : '#1f3c2d';
-      ctx.fillStyle = treeColor;
-      [160, 300, 470, 630, 760].forEach((x, i) => {
-        const ty = 165 + i * 28;
-        const tr = 52 + (i % 2) * 14;
-        const g = ctx.createRadialGradient(x, ty, 8, x, ty, tr);
-        g.addColorStop(0, '#2d5a40'); g.addColorStop(1, treeColor);
+    }
+
+    function drawHills(w, h, habitat) {
+      const base = habitat === 'canyon' ? '#3a2818' : habitat === 'marsh' ? '#143828' : '#163024';
+      ctx.fillStyle = base;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.42);
+      ctx.bezierCurveTo(w * 0.2, h * 0.3, w * 0.45, h * 0.48, w * 0.7, h * 0.34);
+      ctx.lineTo(w, h * 0.38);
+      ctx.lineTo(w, h * 0.55);
+      ctx.lineTo(0, h * 0.52);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 0.38;
+      ctx.fillStyle = habitat === 'canyon' ? '#2a1c12' : '#0f2418';
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.48);
+      ctx.bezierCurveTo(w * 0.35, h * 0.38, w * 0.6, h * 0.52, w, h * 0.44);
+      ctx.lineTo(w, h * 0.58);
+      ctx.lineTo(0, h * 0.56);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawTreeLayer(w, trees, alpha) {
+      ctx.globalAlpha = alpha;
+      trees.forEach((t) => {
+        const g = ctx.createRadialGradient(t.x, t.y - 8, 6, t.x, t.y, t.r);
+        g.addColorStop(0, t.light || '#3d7a52');
+        g.addColorStop(0.55, t.mid || '#2a5a3a');
+        g.addColorStop(1, t.dark || '#1a3a28');
         ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(x, ty, tr, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#2a231b';
-        ctx.fillRect(x - 5, ty + 30, 10, 58);
-        ctx.fillStyle = treeColor;
+        ctx.beginPath();
+        ctx.ellipse(t.x, t.y, t.r * 0.92, t.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2a2318';
+        ctx.fillRect(t.x - t.trunk * 0.35, t.y + t.r * 0.55, t.trunk * 0.7, t.trunkH || 42);
       });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawGroundTexture(w, h, habitat) {
+      const groundTop = h * 0.52;
+      const gnd = ctx.createLinearGradient(0, groundTop, 0, h);
+      if (habitat === 'marsh') {
+        gnd.addColorStop(0, '#123828'); gnd.addColorStop(1, '#081a14');
+      } else if (habitat === 'canyon') {
+        gnd.addColorStop(0, '#3a2a18'); gnd.addColorStop(1, '#1a140c');
+      } else {
+        gnd.addColorStop(0, '#143a28'); gnd.addColorStop(1, '#081610');
+      }
+      ctx.fillStyle = gnd;
+      ctx.fillRect(0, groundTop, w, h - groundTop);
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 22; i++) {
+        const gx = (i * 97 + 30) % w;
+        const gy = groundTop + 40 + (i % 5) * 38;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy + 18);
+        ctx.quadraticCurveTo(gx - 4, gy, gx + 2, gy - 14);
+        ctx.stroke();
+      }
+      if (habitat === 'forest') {
+        ctx.fillStyle = 'rgba(52,120,72,0.25)';
+        for (let i = 0; i < 16; i++) {
+          const fx = 30 + i * 54;
+          const fy = h - 90 - (i % 3) * 12;
+          ctx.beginPath();
+          ctx.moveTo(fx, fy + 16);
+          ctx.quadraticCurveTo(fx - 8, fy - 4, fx, fy - 18);
+          ctx.quadraticCurveTo(fx + 8, fy - 4, fx, fy + 16);
+          ctx.fill();
+        }
+      } else if (habitat === 'marsh') {
+        ctx.fillStyle = '#1a5a42';
+        for (let i = 0; i < 20; i++) {
+          const rx = 24 + i * 42;
+          const rh = 70 + (i % 4) * 18;
+          ctx.fillRect(rx, h - rh - 20, 5, rh);
+          ctx.beginPath(); ctx.ellipse(rx + 2, h - rh - 24, 12, 7, 0, 0, Math.PI * 2); ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = '#5a4030';
+        ctx.beginPath(); ctx.moveTo(0, h * 0.55); ctx.lineTo(220, h * 0.42); ctx.lineTo(400, h * 0.58); ctx.lineTo(0, h * 0.68); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(480, h * 0.48); ctx.lineTo(880, h * 0.38); ctx.lineTo(880, h * 0.62); ctx.lineTo(500, h * 0.58); ctx.fill();
+      }
+    }
+
+    function drawAtmosphere(w, h, tod) {
+      if (tod === 'dawn' || tod === 'dusk') {
+        const mist = ctx.createLinearGradient(0, h * 0.45, 0, h * 0.85);
+        mist.addColorStop(0, 'rgba(180,200,190,0)');
+        mist.addColorStop(0.5, tod === 'dawn' ? 'rgba(255,220,180,0.08)' : 'rgba(120,80,140,0.1)');
+        mist.addColorStop(1, 'rgba(40,60,50,0.18)');
+        ctx.fillStyle = mist;
+        ctx.fillRect(0, h * 0.4, w, h * 0.55);
+      }
+      if (tod === 'dusk' || tod === 'night') {
+        for (let i = 0; i < 14; i++) {
+          const fx = (performance.now() * 0.02 + i * 61) % w;
+          const fy = h * 0.55 + Math.sin(performance.now() * 0.003 + i) * 30 + (i % 4) * 40;
+          ctx.fillStyle = `rgba(253,224,71,${0.15 + (i % 3) * 0.1})`;
+          ctx.beginPath(); ctx.arc(fx, fy, 1.5 + (i % 2), 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+
+    function drawEnhancedHabitat(w, h) {
+      const tod = gameState.timeOfDay;
+      const habitat = gameState.habitat;
+      drawSky(w, h, habitatSkyStops(tod, habitat));
+      drawCelestial(w, h, tod);
+      drawHills(w, h, habitat);
+      drawTreeLayer(w, [
+        { x: 90, y: 175, r: 38, trunk: 7 },
+        { x: 260, y: 158, r: 46, trunk: 8 },
+        { x: 520, y: 168, r: 42, trunk: 7 },
+        { x: 720, y: 152, r: 50, trunk: 9 },
+        { x: 840, y: 178, r: 36, trunk: 6 },
+      ], 0.42);
+      drawGroundTexture(w, h, habitat);
+      drawTreeLayer(w, [
+        { x: 180, y: 218, r: 58, trunk: 10, light: '#4a8a5a' },
+        { x: 400, y: 205, r: 64, trunk: 11, light: '#3f7a50' },
+        { x: 610, y: 212, r: 56, trunk: 10, light: '#458055' },
+        { x: 790, y: 225, r: 52, trunk: 9, light: '#3a7050' },
+      ], 0.78);
+      drawTreeLayer(w, [
+        { x: 55, y: 268, r: 72, trunk: 12, light: '#52a068', trunkH: 58 },
+        { x: 330, y: 255, r: 78, trunk: 13, light: '#48a060', trunkH: 62 },
+        { x: 680, y: 262, r: 70, trunk: 12, light: '#4a9860', trunkH: 56 },
+      ], 1);
+      drawAtmosphere(w, h, tod);
+    }
+
+    function drawFieldResearcher(ctx, opts = {}) {
+      const { charging = false, dashing = false, listening = false } = opts;
+      const lean = dashing ? 0.18 : charging ? -0.08 : 0;
+      ctx.rotate(lean);
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 3;
+
+      // Boots
+      ctx.fillStyle = '#3d2e22';
+      ctx.fillRect(-9, 18, 8, 7);
+      ctx.fillRect(1, 18, 8, 7);
+
+      // Legs
+      ctx.fillStyle = '#6b5a42';
+      ctx.fillRect(-8, 4, 7, 16);
+      ctx.fillRect(1, 4, 7, 16);
+
+      // Jacket
+      const jacket = ctx.createLinearGradient(-14, -8, 14, 20);
+      jacket.addColorStop(0, '#2d6a4a');
+      jacket.addColorStop(1, '#1b4332');
+      ctx.fillStyle = jacket;
+      ctx.beginPath();
+      ctx.roundRect(-13, -10, 26, 22, 4);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(110,231,183,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Backpack
+      ctx.fillStyle = '#4a3828';
+      ctx.beginPath();
+      ctx.roundRect(-18, -8, 8, 18, 3);
+      ctx.fill();
+
+      // Head + field hat
+      ctx.fillStyle = '#d4a574';
+      ctx.beginPath(); ctx.arc(0, -18, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5c4a32';
+      ctx.beginPath();
+      ctx.ellipse(0, -24, 14, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(-6, -28, 12, 6);
+
+      // Headphones when listening
+      if (listening) {
+        ctx.strokeStyle = '#374151';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(-7, -18, 5, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.arc(7, -18, 5, -Math.PI * 0.5, Math.PI * 0.5);
+        ctx.stroke();
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(-12, -20, 5, 8);
+        ctx.fillRect(7, -20, 5, 8);
+      }
+
+      // Parabolic mic dish — extends forward (+X)
+      const micX = charging ? 8 : 14;
+      ctx.strokeStyle = '#6b7280';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(6, -2);
+      ctx.lineTo(micX + 6, -6);
+      ctx.stroke();
+      const dishGrad = ctx.createRadialGradient(micX + 18, -4, 2, micX + 18, -4, 16);
+      dishGrad.addColorStop(0, '#e5e7eb');
+      dishGrad.addColorStop(0.5, '#9ca3af');
+      dishGrad.addColorStop(1, '#4b5563');
+      ctx.fillStyle = dishGrad;
+      ctx.beginPath();
+      ctx.arc(micX + 18, -4, 15, -0.9, 0.9);
+      ctx.lineTo(micX + 4, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = '#374151';
+      ctx.beginPath(); ctx.arc(micX + 4, -4, 3, 0, Math.PI * 2); ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+    }
+
+    function drawCanvasHud(w, h) {
+      if (!demoMode && !presentationDemo) return;
+      const pad = 14;
+      ctx.save();
+      ctx.font = '600 11px system-ui';
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.roundRect(pad, pad, 118, 28, 8);
+      ctx.fill();
+      ctx.fillStyle = '#a7f3d0';
+      ctx.fillText(timeLabels[gameState.timeOfDay] + ' · ' + gameState.habitat.toUpperCase(), pad + 10, pad + 18);
+
+      const snr = document.getElementById('snr-db')?.textContent || '--';
+      ctx.beginPath();
+      ctx.roundRect(w - pad - 108, pad, 98, 28, 8);
+      ctx.fill();
+      ctx.fillStyle = '#6ee7b7';
+      ctx.font = '700 12px system-ui';
+      ctx.fillText('SNR ' + snr + ' dB', w - pad - 96, pad + 18);
+      ctx.restore();
     }
 
     function drawCanvasCompass() {
-      const nearest = EchoesCore.nearestActiveCaller({ x: player.x, y: player.y }, animals, gameState.timeOfDay);
+      const nearest = getCompassTarget();
       if (!nearest.animal) return;
+      const bossHunt = logged >= EXPEDITION_REGULAR_TARGET && !bossLogged;
       const dx = nearest.animal.x - player.x;
       const dy = nearest.animal.y - player.y;
       const dist = Math.hypot(dx, dy) || 1;
@@ -1095,9 +2317,9 @@
       const ax = player.x + ux * 42;
       const ay = player.y + uy * 42;
       ctx.save();
-      ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
-      ctx.fillStyle = 'rgba(52, 211, 153, 0.9)';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = bossHunt ? 'rgba(253, 224, 71, 0.9)' : 'rgba(52, 211, 153, 0.85)';
+      ctx.fillStyle = bossHunt ? 'rgba(253, 224, 71, 0.95)' : 'rgba(52, 211, 153, 0.9)';
+      ctx.lineWidth = bossHunt ? 4 : 3;
       ctx.beginPath();
       ctx.moveTo(player.x, player.y);
       ctx.lineTo(ax, ay);
@@ -1109,8 +2331,9 @@
       ctx.closePath();
       ctx.fill();
       ctx.font = 'bold 11px system-ui';
-      ctx.fillStyle = 'rgba(167, 243, 208, 0.95)';
-      ctx.fillText(nearest.animal.species.name.split(' ').pop(), ax + 8, ay - 8);
+      ctx.fillStyle = bossHunt ? 'rgba(253, 224, 71, 0.98)' : 'rgba(167, 243, 208, 0.95)';
+      const label = (bossHunt ? '★ ' : '') + nearest.animal.species.name.split(' ').pop();
+      ctx.fillText(label, ax + 8, ay - 8);
       ctx.restore();
     }
 
@@ -1127,7 +2350,19 @@
 
         const since = performance.now() - (a.lastCall || 0);
         const calling = since < 820 && active;
-        drawSpeciesSilhouette(ctx, a.id, a.species.color, active, calling);
+        const isBoss = a.id === EchoesCore.getBossSpeciesId(gameState.habitat);
+        if (isBoss && logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(253,224,71,0.75)';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.arc(a.x, a.y + bob, 42 + Math.sin(performance.now() * 0.004) * 6, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+        drawSpeciesSilhouette(ctx, a.id, a.species.color, active, calling || (isBoss && bossPhaseActive));
         ctx.restore();
 
         if (calling) {
@@ -1140,9 +2375,10 @@
           ctx.fillStyle = a.species.color;
           ctx.beginPath(); ctx.arc(a.x, a.y + bob, 34, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
-          ctx.font = '600 10px system-ui';
+          ctx.font = demoMode ? '700 14px system-ui' : '600 10px system-ui';
           ctx.fillStyle = '#ecfdf5';
-          ctx.fillText('♪ ' + a.species.name.split(' ').pop(), a.x - 28, a.y + bob - 38);
+          const spLabel = '♪ ' + a.species.name.split(' ').pop();
+          ctx.fillText(spLabel, a.x - (demoMode ? 36 : 28), a.y + bob - (demoMode ? 44 : 38));
         } else if (!active) {
           ctx.globalAlpha = 0.35;
         }
@@ -1159,39 +2395,15 @@
       });
       ctx.globalAlpha = 1;
 
-      // Player using custom image assets - fingers holding / break free shoot forward
+      // Vector field researcher with parabolic mic
       ctx.save();
       ctx.translate(player.x, player.y);
       ctx.rotate(player.facing || 0);
-
-      let playerImg = hikerImgs.normal;
-      let imgW = 52, imgH = 52;
-      if (isDashEnabled() && isDashing && hikerImgs.dash.complete) {
-        playerImg = hikerImgs.dash;
-      } else if (isDashEnabled() && isChargingMove && hikerImgs.charge.complete) {
-        playerImg = hikerImgs.charge;
-      } else if (hikerImgs.normal.complete) {
-        playerImg = hikerImgs.normal;
-      }
-
-      if (playerImg && playerImg.complete && playerImg.naturalWidth > 0) {
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-        ctx.drawImage(playerImg, -imgW/2, -imgH/2, imgW, imgH);
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-      } else {
-        // fallback basic
-        ctx.fillStyle = '#3f2b22';
-        ctx.fillRect(-17, -19, 34, 46);
-        ctx.fillStyle = '#d2b48c';
-        ctx.beginPath();
-        ctx.arc(0, -25, 15, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      drawFieldResearcher(ctx, {
+        charging: isDashEnabled() && isChargingMove,
+        dashing: isDashEnabled() && isDashing,
+        listening: listenActive,
+      });
 
       if (isDashEnabled() && isChargingMove && chargeMoveTime > 0) {
         const barW = 34;
@@ -1214,24 +2426,32 @@
       drawCanvasCompass();
 
       if (listenActive) {
+        const coneScale = getListenConeScale();
         ctx.save();
         ctx.translate(player.x, player.y);
         ctx.rotate(player.facing || 0);
-        const cone = ctx.createLinearGradient(0, 0, 200, 0);
-        cone.addColorStop(0, 'rgba(52, 211, 153, 0.35)');
+        const cone = ctx.createLinearGradient(0, 0, 200 * coneScale, 0);
+        cone.addColorStop(0, demoMode ? 'rgba(52, 211, 153, 0.55)' : 'rgba(52, 211, 153, 0.35)');
         cone.addColorStop(1, 'rgba(52, 211, 153, 0.05)');
         ctx.fillStyle = cone;
-        ctx.strokeStyle = 'rgba(52, 211, 153, 0.65)';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = demoMode ? 'rgba(110, 231, 183, 0.9)' : 'rgba(52, 211, 153, 0.65)';
+        ctx.lineWidth = demoMode ? 4 : 2.5;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(210, -48);
-        ctx.lineTo(210, 48);
+        ctx.lineTo(210 * coneScale, -48 * coneScale);
+        ctx.lineTo(210 * coneScale, 48 * coneScale);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+        if (demoMode) {
+          ctx.font = 'bold 12px system-ui';
+          ctx.fillStyle = '#6ee7b7';
+          ctx.fillText('LISTEN CONE', 24, -56 * coneScale);
+        }
         ctx.restore();
       }
+
+      drawCanvasHud(w, h);
 
       // subtle vignette / edges
       const grad = ctx.createRadialGradient(440, 310, 280, 440, 310, 520);
@@ -1269,21 +2489,34 @@
       panel.classList.add('block');
       opts.innerHTML = '';
       spectroPeakTapped = false;
-      meta.textContent = `${timeLabels[clip.timeOfDay]} • ${EchoesCore.qualityLabel(clip.quality)} • ${clip.dominant.name.split(' ').pop()}`;
+      if (demoMode) identifyPaused = true;
+      const snrAtRec = EchoesCore.computeSnrDb(
+        { x: player.x, y: player.y, facing: player.facing, listenActive: true },
+        animals.find((a) => a.id === clip.dominant.id) || { x: player.x + 40, y: player.y },
+        true
+      );
+      meta.textContent = `${timeLabels[clip.timeOfDay]} • ${EchoesCore.qualityLabel(clip.quality)} • ${snrAtRec} dB SNR • ${clip.dominant.name.split(' ').pop()}`;
 
       drawInteractiveSpectrogram(clip);
+      lastSharedClip = clip;
+      const shareSpec = document.getElementById('spectrogram-share');
+      if (shareSpec) shareSpec.classList.add('hidden');
+      document.getElementById('lore-card')?.classList.add('hidden');
 
       const choices = EchoesCore.buildIdentifyOptions(species, clip, persona);
       const hasLikelyMatch = choices.some((c) => c.isLikely);
       choices.forEach((choice) => {
         const sp = species.find((s) => s.id === choice.id);
         const b = document.createElement('button');
+        const conf = EchoesCore.computeIdConfidence({ quality: clip.quality, peakTapped: false, isLikely: choice.isLikely });
         const likelyTag = choice.isLikely ? '<span class="text-[9px] text-emerald-300/90 ml-1">★ Most likely</span>' : '';
+        const confTag = `<span class="id-confidence">${conf}% conf</span>`;
         b.className = 'species-btn px-3 py-2 text-xs rounded-2xl border bg-zinc-950 hover:border-emerald-400/60 text-left ' +
           (choice.isLikely ? 'border-emerald-400/70 ring-1 ring-emerald-400/40' : 'border-white/10');
         b.dataset.speciesId = sp.id;
+        b.dataset.confidence = String(conf);
         if (choice.isLikely) b.dataset.likely = '1';
-        b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span>${likelyTag}<div class="text-[10px] text-white/50">${sp.fact}</div>`;
+        b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span>${likelyTag}${confTag}<div class="text-[10px] text-white/50">${sp.fact}</div>`;
         if (!spectroPeakTapped || (tutorialActive && tutorialStep === 2 && !choice.isLikely)) {
           b.disabled = true;
           b.className += ' opacity-40 cursor-not-allowed';
@@ -1339,9 +2572,22 @@
         showToast(`${peak.label} — aligns with ★ species`, 'good');
         updateSpectroHint(clip);
         drawInteractiveSpectrogram(clip);
+        document.querySelectorAll('#identify-options button[data-species-id]').forEach((b) => {
+          const conf = EchoesCore.computeIdConfidence({
+            quality: clip.quality,
+            peakTapped: true,
+            isLikely: b.dataset.likely === '1',
+          });
+          b.dataset.confidence = String(conf);
+          const confEl = b.querySelector('.id-confidence');
+          if (confEl) confEl.textContent = conf + '% conf';
+        });
         refreshIdentifyOptionStates();
+        const shareSpec = document.getElementById('spectrogram-share');
+        if (shareSpec) shareSpec.classList.toggle('hidden', !expeditionComplete);
       } else {
-        showToast('Secondary peak — try the pulsing bright band', 'info');
+        const lore = EchoesCore.SPECIES_LORE[clip.dominant.id];
+        showToast(lore ? `Wrong band — key peak is ${EchoesCore.SPECIES_FREQ_PROFILES[clip.dominant.id]?.label || 'brighter band'}. ${lore.tip}` : 'Secondary peak — try the pulsing bright band', 'warn');
       }
     }
 
@@ -1371,6 +2617,17 @@
         if (isBat && peakNear(peaks, t)) h += 4;
         cctx.fillStyle = 'rgba(30,50,40,0.85)';
         cctx.fillRect(x, 36 - h / 2, 2, h);
+      }
+      if (isBat) {
+        cctx.strokeStyle = 'rgba(110,231,183,0.65)';
+        cctx.lineWidth = 2;
+        cctx.beginPath();
+        cctx.moveTo(cvs.width * 0.72, 18);
+        cctx.lineTo(cvs.width * 0.22, 54);
+        cctx.stroke();
+        cctx.fillStyle = 'rgba(167,243,208,0.7)';
+        cctx.font = '9px system-ui';
+        cctx.fillText('FM sweep ↘', cvs.width * 0.48, 14);
       }
       peaks.forEach((peak) => {
         const px = peak.xNorm * cvs.width;
@@ -1415,6 +2672,7 @@
       panel.classList.add('hidden');
       panel.classList.remove('block');
       currentClip = null;
+      identifyPaused = false;
     }
 
     function updateJournal() {
@@ -1473,10 +2731,11 @@
       const done = EchoesCore.markHabitatDone(getHabitatsDone(), gameState.habitat);
       try {
         localStorage.setItem('echoes-habitats-done', JSON.stringify(done));
-        localStorage.setItem('echoes-expedition-level', String(Math.max(getExpeditionLevel(), 2)));
+        localStorage.setItem('echoes-expedition-level', String(Math.max(getExpeditionLevel(), done.length + 1)));
       } catch (e) {}
       if (session) session.dashEnabled = isDashEnabled();
       updateProgressiveDisclosure();
+      updateProgressionMap();
       const remaining = ['forest', 'marsh', 'canyon'].filter(h => !done.includes(h));
 
       // Educational takeaway
@@ -1496,7 +2755,7 @@
           <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div>
               <div class="text-emerald-400 font-semibold text-lg">Expedition Complete ✓</div>
-              <div class="text-sm text-emerald-300/70">${habitatName} • ${correctEntries.length}/6 species • ${integrity}% integrity</div>
+              <div class="text-sm text-emerald-300/70">${habitatName} • ${logged}/${EXPEDITION_REGULAR_TARGET} survey + boss • ${integrity}% integrity</div>
               <div class="text-[10px] text-emerald-300/50 mt-1">Habitats cleared: ${done.length}/3</div>
             </div>
             <div class="text-right">
@@ -1539,13 +2798,17 @@
     }
 
     function shareFieldReport() {
+      if (!expeditionComplete) {
+        showToast('Publish your Field Report first — log the boss caller.', 'info');
+        return;
+      }
       const habitatName = document.getElementById('title').textContent;
       const correctOnes = journalEntries.filter(e => e.correct);
       const avgQuality = correctOnes.length ? Math.round(correctOnes.reduce((s,e)=>s + e.quality, 0) / correctOnes.length * 100) : 0;
 
       const report = `🌲 ECHOES Field Report\n` +
         `Habitat: ${habitatName}\n` +
-        `Species Logged: ${correctOnes.length}/6\n` +
+        `Survey: ${logged}/${EXPEDITION_REGULAR_TARGET} + boss ✓\n` +
         `Final Acoustic Integrity: ${integrity}%\n` +
         `Best recording quality: ${avgQuality}%\n\n` +
         `Highlights:\n` + correctOnes.slice(0,4).map(e => `• ${e.species.name} (${e.time})`).join('\n') + `\n\n` +
@@ -1570,10 +2833,20 @@
 
     function resetExpedition() {
       logged = 0;
+      bossLogged = false;
+      expeditionComplete = false;
+      bossPhaseActive = false;
       integrity = 100;
       journalEntries = [];
       currentClip = null;
-      document.getElementById('logged').textContent = '0/6';
+      if (session) {
+        session.logged = 0;
+        session.bossLogged = false;
+        session.integrity = 100;
+        session.journal = [];
+        session.currentClip = null;
+      }
+      updateExpeditionHud();
       document.getElementById('integrity').textContent = '100';
       document.getElementById('journal').innerHTML = '';
       document.getElementById('journal').classList.add('hidden');
@@ -1613,6 +2886,22 @@
         refreshIdentifyOptionStates();
         const hint = document.getElementById('spectro-hint');
         if (hint) hint.textContent = 'Peak matched — pick the species below';
+      };
+      window.__echoesUnlockRecord = function () {
+        tutorialStep = 1;
+        tutorialListenTicks = LISTEN_HOLD_TICKS;
+        mouse.listenDown = true;
+        setRecordDockEnabled(true);
+      };
+      window.__echoesTriggerRecord = function () {
+        window.__echoesUnlockRecord();
+        recordClip();
+      };
+      window.__echoesOpenFieldReport = function () {
+        expeditionComplete = true;
+        logged = EXPEDITION_REGULAR_TARGET;
+        bossLogged = true;
+        openFieldReportFinale();
       };
 
       session.player.vx = 0.9;
@@ -1699,12 +2988,27 @@
           const sel = document.getElementById('persona');
           if (sel) sel.value = savedPersona;
         }
+        if (localStorage.getItem('echoes-demo-mode') === '1') toggleDemoMode();
       } catch (e) {}
+
+      ['sm-dawn', 'sm-dusk', 'sm-night'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateSongMeterDeployState);
+      });
+      initSongMeterMapClick();
 
       // initial time badge
       document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
       updateBestDisplay();
       updateStreak();
+      updateProgressionMap();
+      updateBioBlitzRare();
+      applyPersonaDensity();
+      updatePowerBadge();
+      updateFinalStretchCoach();
+      try {
+        if (localStorage.getItem('echoes-disclaimer-dismissed') === '1') dismissTrainingDisclaimer();
+      } catch (e) {}
 
       // kick a couple calls early
       setTimeout(() => {
@@ -1730,6 +3034,7 @@
 
       // Guided onboarding on first load; help modal as fallback
       setTimeout(() => {
+        if (presentationDemo) return;
         if (!maybeShowOnboarding()) {
           showAudioGateIfNeeded();
           try {
@@ -1742,7 +3047,9 @@
         }
       }, 900);
 
-      console.log('%c[ECHOES] Playtest v1.7 — vector species + interactive spectrogram peaks.', 'color:#4ade80');
+      if (presentationDemo) setupPresentationDemo();
+
+      console.log('%c[ECHOES] Playtest v2.0 — vector field art · cinematic habitat · demo presentation.', 'color:#4ade80');
     }
 
     function updateStats() {

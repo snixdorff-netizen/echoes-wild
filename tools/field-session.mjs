@@ -6,10 +6,14 @@ import {
   TIME_ORDER,
   initAnimals,
   selectRecordingTarget,
+  scoreAnimalTarget,
+  clipQualityFromScore,
   nearestActiveCaller,
   simulateListenFacing,
   applyIdentification,
   shouldCompleteExpedition,
+  getBossSpeciesId,
+  EXPEDITION_REGULAR_TARGET,
   simIdentificationBonus,
   buildIdentifyOptions,
 } from './echoes-core.mjs';
@@ -37,6 +41,7 @@ export class FieldSession {
     this.player = { x: 440, y: 310, vx: 0, vy: 0, facing: 0 };
     this.animals = this._initAnimals(habitat);
     this.logged = 0;
+    this.bossLogged = false;
     this.integrity = 100;
     this.journal = [];
     this.currentClip = null;
@@ -173,12 +178,20 @@ export class FieldSession {
     this.tick({ keys: {}, mouse: { down: false, listenDown: false, x: this.player.x, y: this.player.y }, dt: 0.5, now: this._now });
   }
 
-  record() {
-    const rec = selectRecordingTarget(
-      { x: this.player.x, y: this.player.y, facing: this.player.facing, listenActive: this.listenActive },
-      this.animals,
-      this.gameState.timeOfDay,
-    );
+  record({ preferBoss = false } = {}) {
+    const player = { x: this.player.x, y: this.player.y, facing: this.player.facing, listenActive: this.listenActive };
+    let rec = null;
+    if (preferBoss || this.needsBossPhase()) {
+      const bossId = getBossSpeciesId(this.gameState.habitat);
+      const boss = this.animals.find((a) => a.id === bossId);
+      if (boss && boss.activity.includes(this.gameState.timeOfDay)) {
+        const bestScore = scoreAnimalTarget(player, boss, this.gameState.timeOfDay);
+        rec = { dominant: boss, quality: clipQualityFromScore(bestScore), bestScore };
+      }
+    }
+    if (!rec) {
+      rec = selectRecordingTarget(player, this.animals, this.gameState.timeOfDay);
+    }
     const best = rec.dominant || rec.best;
     this.recordCount++;
     this.currentClip = {
@@ -201,8 +214,11 @@ export class FieldSession {
       quality: clip.quality,
       logged: this.logged,
       integrity: this.integrity,
+      bossLogged: this.bossLogged,
+      habitat: this.gameState.habitat,
     });
     this.logged = outcome.logged;
+    this.bossLogged = outcome.bossLogged ?? this.bossLogged;
     this.integrity = outcome.integrity;
     this.journal.unshift({
       species: clip.dominant,
@@ -218,6 +234,7 @@ export class FieldSession {
   switchHabitat(habitat) {
     this.gameState.habitat = habitat;
     this.logged = 0;
+    this.bossLogged = false;
     this.integrity = 100;
     this.journal = [];
     this.currentClip = null;
@@ -232,17 +249,40 @@ export class FieldSession {
     this.gameState.timeOfDay = TIME_ORDER[(idx + 1) % TIME_ORDER.length];
   }
 
+  /** Sim + UI parity: boss-active time shift and placement when survey target is met. */
+  prepareBossPhase() {
+    const bossId = getBossSpeciesId(this.gameState.habitat);
+    const bossTod = bossId === 'owl' ? 'dusk' : bossId === 'peeper' ? 'night' : 'day';
+    this.gameState.timeOfDay = bossTod;
+    const bossAnimal = this.animals.find((a) => a.id === bossId);
+    if (bossAnimal) {
+      bossAnimal.x = 440 + (this.rng() - 0.5) * 70;
+      bossAnimal.y = 285 + (this.rng() - 0.5) * 50;
+      bossAnimal.lastCall = this._now;
+      this.player.x = bossAnimal.x - 55;
+      this.player.y = bossAnimal.y - 15;
+      this.player.facing = Math.atan2(bossAnimal.y - this.player.y, bossAnimal.x - this.player.x);
+      this.listenActive = true;
+    }
+    return bossId;
+  }
+
+  needsBossPhase() {
+    return this.logged >= EXPEDITION_REGULAR_TARGET && !this.bossLogged;
+  }
+
   getState() {
     return {
       player: { ...this.player },
       animals: this.animals,
       gameState: { ...this.gameState },
       logged: this.logged,
+      bossLogged: this.bossLogged,
       integrity: this.integrity,
       journal: [...this.journal],
       currentClip: this.currentClip ? { ...this.currentClip } : null,
       listenActive: this.listenActive,
-      completed: shouldCompleteExpedition(this.logged),
+      completed: shouldCompleteExpedition(this.logged, this.bossLogged),
       recordCount: this.recordCount,
       listenTicksSession: this.listenTicksSession,
       isDashing: this._isDashing,
