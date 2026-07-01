@@ -165,6 +165,37 @@
   };
   return (hints[persona] || hints.liam)[kind];
 }
+  function activeSpeciesForTime(speciesList, timeOfDay) {
+  return speciesList.filter((sp) => sp.activity.includes(timeOfDay));
+}
+  function likelyMatchThreshold(persona) {
+  return persona === 'liam' ? 0.48 : 0.52;
+}
+  function buildIdentifyOptions(speciesList, clip, persona) {
+  const pool = activeSpeciesForTime(speciesList, clip.timeOfDay);
+  const threshold = likelyMatchThreshold(persona);
+  return pool
+    .slice()
+    .sort((a, b) => (a.id === clip.dominant.id ? -1 : b.id === clip.dominant.id ? 1 : 0))
+    .map((sp) => ({
+      id: sp.id,
+      name: sp.name,
+      isLikely: sp.id === clip.dominant.id && clip.quality >= threshold,
+    }));
+}
+  function simIdentificationBonus({ features, persona, quality, skill }) {
+  let bonus = 0;
+  const threshold = likelyMatchThreshold(persona);
+  if (quality >= 0.58 && features.nearestCallerHint && skill >= 0.72) bonus += 0.1;
+  if (quality >= 0.55 && features.personaHints && skill >= 0.75) bonus += 0.08;
+  if (quality >= 0.62 && features.integrityToasts) bonus += 0.06;
+  if (quality >= threshold && features.likelyMatchLabel && skill >= 0.78) {
+    bonus += persona === 'liam' ? 0.14 : 0.1;
+  }
+  if (features.activeSpeciesFilter && quality >= 0.45 && skill >= 0.78) bonus += 0.08;
+  if (skill >= 0.9 && quality >= 0.5 && features.likelyMatchLabel) bonus += 0.06;
+  return bonus;
+}
 
   class FieldSession {
   constructor({ habitat = 'forest', timeOfDay = 'dawn', speciesList = SPECIES, rng = Math.random } = {}) {
@@ -410,6 +441,10 @@
     shouldCompleteExpedition: shouldCompleteExpedition,
     markHabitatDone: markHabitatDone,
     personaHint: personaHint,
+    activeSpeciesForTime: activeSpeciesForTime,
+    likelyMatchThreshold: likelyMatchThreshold,
+    buildIdentifyOptions: buildIdentifyOptions,
+    simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

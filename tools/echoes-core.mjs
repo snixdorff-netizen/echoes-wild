@@ -173,6 +173,43 @@ export function markHabitatDone(doneList, habitat) {
   return done;
 }
 
+export function activeSpeciesForTime(speciesList, timeOfDay) {
+  return speciesList.filter((sp) => sp.activity.includes(timeOfDay));
+}
+
+export function likelyMatchThreshold(persona) {
+  return persona === 'liam' ? 0.48 : 0.52;
+}
+
+/** Shared identify-card builder — same options the shipped page renders. */
+export function buildIdentifyOptions(speciesList, clip, persona) {
+  const pool = activeSpeciesForTime(speciesList, clip.timeOfDay);
+  const threshold = likelyMatchThreshold(persona);
+  return pool
+    .slice()
+    .sort((a, b) => (a.id === clip.dominant.id ? -1 : b.id === clip.dominant.id ? 1 : 0))
+    .map((sp) => ({
+      id: sp.id,
+      name: sp.name,
+      isLikely: sp.id === clip.dominant.id && clip.quality >= threshold,
+    }));
+}
+
+/** Models how shipped UI helps players pick the dominant species. */
+export function simIdentificationBonus({ features, persona, quality, skill }) {
+  let bonus = 0;
+  const threshold = likelyMatchThreshold(persona);
+  if (quality >= 0.58 && features.nearestCallerHint && skill >= 0.72) bonus += 0.1;
+  if (quality >= 0.55 && features.personaHints && skill >= 0.75) bonus += 0.08;
+  if (quality >= 0.62 && features.integrityToasts) bonus += 0.06;
+  if (quality >= threshold && features.likelyMatchLabel && skill >= 0.78) {
+    bonus += persona === 'liam' ? 0.14 : 0.1;
+  }
+  if (features.activeSpeciesFilter && quality >= 0.45 && skill >= 0.78) bonus += 0.08;
+  if (skill >= 0.9 && quality >= 0.5 && features.likelyMatchLabel) bonus += 0.06;
+  return bonus;
+}
+
 export function personaHint(persona, kind) {
   const hints = {
     liam: {
@@ -251,13 +288,13 @@ export function scoreSessionRubric({
       wouldRecommend += 0.2;
     }
   }
-  if (features.activeSpeciesFilter && segment === 'general') {
-    clarity += 0.2;
-    fun += 0.1;
+  if (features.activeSpeciesFilter) {
+    clarity += segment === 'general' ? 0.2 : 0.12;
+    fun += 0.08;
   }
-  if (features.likelyMatchLabel && segment === 'general') {
-    clarity += 0.15;
-    wouldRecommend += 0.1;
+  if (features.likelyMatchLabel) {
+    clarity += 0.12;
+    if (segment === 'general') wouldRecommend += 0.1;
   }
   if (features.audioGate) {
     fun += 0.1;
@@ -369,7 +406,7 @@ export function readShippedFeaturesFromHtml(html) {
     expeditionGate: html.includes('shouldCompleteExpedition') || html.includes('logged >= 6'),
     audioGate: html.includes('id="audio-gate"'),
     nearestCallerHint: html.includes('id="nearest-hint"'),
-    activeSpeciesFilter: html.includes('activeSpeciesForTime'),
+    activeSpeciesFilter: html.includes('buildIdentifyOptions'),
     likelyMatchLabel: html.includes('Most likely'),
   };
 }

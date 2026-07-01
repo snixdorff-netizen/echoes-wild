@@ -10,6 +10,8 @@ import {
   simulateListenFacing,
   applyIdentification,
   shouldCompleteExpedition,
+  simIdentificationBonus,
+  buildIdentifyOptions,
 } from './echoes-core.mjs';
 
 export const RECORD_BUDGET = 8;
@@ -268,11 +270,18 @@ export function pickSimIdentification({
   rng = Math.random,
 }) {
   let pCorrect = Math.min(0.94, idSkill * (0.38 + quality * 0.55));
-  if (quality >= 0.58 && features.nearestCallerHint && skill >= 0.72) pCorrect += 0.1;
-  if (quality >= 0.55 && features.personaHints && skill >= 0.75) pCorrect += 0.08;
-  if (quality >= 0.62 && features.integrityToasts) pCorrect += 0.06;
-  if (quality >= 0.48 && features.likelyMatchLabel && persona === 'liam' && skill >= 0.78) pCorrect += 0.14;
-  if (features.activeSpeciesFilter && quality >= 0.45 && skill >= 0.78) pCorrect += 0.08;
+  pCorrect += simIdentificationBonus({ features, persona, quality, skill });
+  if (features.likelyMatchLabel && skill >= 0.78 && timeOfDay) {
+    const choices = buildIdentifyOptions(
+      SPECIES,
+      { dominant: { id: dominantId }, timeOfDay, quality },
+      persona,
+    );
+    if (choices.find((c) => c.id === dominantId)?.isLikely) {
+      const slip = skill >= 0.9 ? 0.02 : 0.07;
+      if (rng() > slip) return dominantId;
+    }
+  }
   pCorrect = Math.min(0.97, pCorrect);
   if (rng() < pCorrect) return dominantId;
   let pool = animals;

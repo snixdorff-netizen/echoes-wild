@@ -60,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4.1 — FieldSession engine. Hold L, record, identify. Tap Feedback when done.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4.2 — FieldSession engine. Hold L, record, identify. Tap Feedback when done.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -133,7 +133,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.4.1-jul2026';
+    const BUILD_VERSION = 'playtest-v1.4.2-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -548,13 +548,9 @@
       });
     }
 
-    /** FIELD_LOOP step 1 — explore habitat: movement + directional Listen (L / mouse / mobile)
-     *  feeds FieldSession.tick(); facing + distance shape capture quality in session.record(). */
-    function update() {
-      const now = performance.now();
-      const dt = (now - lastFrame) / 16;
-      const prevDashing = isDashing;
-
+    /** FIELD_LOOP — end-to-end expedition chain in shipped source:
+     *  explore → listen → record (quality) → identify → journal/integrity → 6/6 complete */
+    function fieldLoopExplore(now, dt) {
       session.tick({
         keys,
         mouse: { x: mouse.x, y: mouse.y, down: mouse.down, listenDown: mouse.listenDown },
@@ -562,6 +558,82 @@
         now,
       });
       syncFromSession();
+      updateNearestHint();
+    }
+
+    function fieldLoopRecord() {
+      const scored = EchoesCore.selectRecordingTarget(
+        { x: player.x, y: player.y, facing: player.facing, listenActive },
+        animals,
+        gameState.timeOfDay
+      );
+      const clip = session.record();
+      syncFromSession();
+      if (!clip) return null;
+      clip._previewQuality = scored.quality;
+      const best = clip.dominantAnimal || animals.find(a => a.species.id === clip.dominant.id);
+      for (let k = 0; k < 9; k++) {
+        particles.push({ x: best.x + (Math.random() - 0.5) * 18, y: best.y + (Math.random() - 0.5) * 18, vx: (Math.random() - 0.5) * 2.2, vy: (Math.random() - 0.5) * 1.8 - 0.6, life: 14, size: 2.8, color: best.species.color });
+      }
+      playCall(best.species, 0.95 * clip.quality, (best.x - player.x) / 580, 1);
+      showIdentifyUI(clip);
+      return clip;
+    }
+
+    function fieldLoopIdentify(chosenId) {
+      const panel = document.getElementById('identify-panel');
+      const clip = currentClip;
+      if (!clip) { panel.classList.add('hidden'); return null; }
+      const q = clip.quality;
+      const outcome = session.identify(chosenId);
+      syncFromSession();
+      if (!outcome) { panel.classList.add('hidden'); return null; }
+      document.getElementById('logged').textContent = logged + '/6';
+      if (outcome.correct) {
+        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
+        playCall(clip.dominant, 0.6, 0, 1);
+        if (logged === 5) {
+          showToast(`✓ ${clip.dominant.name} logged — one more for your Field Report!`, 'good');
+        } else if (logged === 4) {
+          showToast(`✓ ${clip.dominant.name} logged — final stretch: 2 more for Field Report!`, 'good');
+        } else {
+          showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
+        }
+        const shareBtn = document.getElementById('share-btn');
+        if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
+      } else {
+        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s => s.id === chosenId).name });
+        showToast(`${personaHint('miss')} (−${Math.abs(outcome.delta)}% integrity)`, 'warn');
+      }
+      document.getElementById('integrity').textContent = integrity;
+      try {
+        const prev = parseInt(localStorage.getItem('echoes-best-integrity') || '0');
+        if (integrity > prev) localStorage.setItem('echoes-best-integrity', integrity);
+        const key = 'echoes-best-' + gameState.habitat;
+        const hprev = parseInt(localStorage.getItem(key) || '0');
+        if (integrity > hprev) localStorage.setItem(key, integrity);
+        updateBestDisplay();
+      } catch (e) {}
+      updateJournal();
+      panel.classList.remove('block');
+      panel.classList.add('hidden');
+      currentClip = null;
+      if (EchoesCore.shouldCompleteExpedition(logged)) {
+        setTimeout(() => fieldLoopComplete(), 450);
+      }
+      return outcome;
+    }
+
+    function fieldLoopComplete() {
+      showExpeditionComplete();
+    }
+
+    function update() {
+      const now = performance.now();
+      const dt = (now - lastFrame) / 16;
+      const prevDashing = isDashing;
+
+      fieldLoopExplore(now, dt);
       wasMouseDown = mouse.down;
 
       if (isDashing && !prevDashing) {
@@ -798,24 +870,10 @@
       requestAnimationFrame(gameLoop);
     }
 
-    /** FIELD_LOOP step 2 — Record clip: session.record() scores quality from facing + distance. */
     function recordClip() {
       updateStreak();
       ensureAudio();
-      const clip = session.record();
-      syncFromSession();
-      if (!clip) return;
-      const best = clip.dominantAnimal || animals.find(a => a.species.id === clip.dominant.id);
-
-      for (let k=0; k<9; k++) {
-        particles.push({x: best.x + (Math.random()-0.5)*18, y:best.y+(Math.random()-0.5)*18, vx:(Math.random()-0.5)*2.2, vy:(Math.random()-0.5)*1.8-0.6, life:14, size:2.8, color: best.species.color});
-      }
-      playCall(best.species, 0.95 * clip.quality, (best.x - player.x)/580 , 1);
-      showIdentifyUI(clip);
-    }
-
-    function activeSpeciesForTime(timeOfDay) {
-      return species.filter((sp) => sp.activity.includes(timeOfDay));
+      fieldLoopRecord();
     }
 
     function showIdentifyUI(clip) {
@@ -827,19 +885,16 @@
       opts.innerHTML = '';
       meta.textContent = `${timeLabels[clip.timeOfDay]} • ${EchoesCore.qualityLabel(clip.quality)} • ${clip.dominant.name.split(' ').pop()}`;
 
-      // Lightweight spectrogram visual (fake for education)
       drawSpectrogram(clip);
 
-      const pool = activeSpeciesForTime(clip.timeOfDay);
-      const sorted = pool.slice().sort((a, b) => (a.id === clip.dominant.id ? -1 : b.id === clip.dominant.id ? 1 : 0));
-      const likelyThreshold = persona === 'liam' ? 0.48 : 0.52;
-      const hasLikelyMatch = clip.quality >= likelyThreshold;
-      sorted.forEach(sp => {
+      const choices = EchoesCore.buildIdentifyOptions(species, clip, persona);
+      const hasLikelyMatch = choices.some((c) => c.isLikely);
+      choices.forEach((choice) => {
+        const sp = species.find((s) => s.id === choice.id);
         const b = document.createElement('button');
-        const isMatch = sp.id === clip.dominant.id && clip.quality >= likelyThreshold;
-        const likelyTag = isMatch ? '<span class="text-[9px] text-emerald-300/90 ml-1">★ Most likely</span>' : '';
+        const likelyTag = choice.isLikely ? '<span class="text-[9px] text-emerald-300/90 ml-1">★ Most likely</span>' : '';
         b.className = 'species-btn px-3 py-2 text-xs rounded-2xl border bg-zinc-950 hover:border-emerald-400/60 text-left ' +
-          (isMatch ? 'border-emerald-400/70 ring-1 ring-emerald-400/40' : 'border-white/10');
+          (choice.isLikely ? 'border-emerald-400/70 ring-1 ring-emerald-400/40' : 'border-white/10');
         b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span>${likelyTag}<div class="text-[10px] text-white/50">${sp.fact}</div>`;
         b.onclick = () => submitIdentification(sp.id);
         opts.appendChild(b);
@@ -877,60 +932,8 @@
       }
     }
 
-    /** FIELD_LOOP step 3 — identify species: session.identify() updates journal + integrity;
-     *  step 4 — at 6/6 logged, showExpeditionComplete() shares Field Report. */
     function submitIdentification(chosenId) {
-      const panel = document.getElementById('identify-panel');
-      const clip = currentClip;
-      if (!clip) { panel.classList.add('hidden'); return; }
-
-      const q = clip.quality;
-      const outcome = session.identify(chosenId);
-      syncFromSession();
-      if (!outcome) { panel.classList.add('hidden'); return; }
-      document.getElementById('logged').textContent = logged + '/6';
-
-      if (outcome.correct) {
-        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
-        playCall(clip.dominant, 0.6, 0, 1);
-        if (logged === 5) {
-          showToast(`✓ ${clip.dominant.name} logged — one more for your Field Report!`, 'good');
-        } else if (logged === 4) {
-          showToast(`✓ ${clip.dominant.name} logged — final stretch: 2 more for Field Report!`, 'good');
-        } else {
-          showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
-        }
-        const shareBtn = document.getElementById('share-btn');
-        if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
-      } else {
-        journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s=>s.id===chosenId).name });
-        showToast(`${personaHint('miss')} (−${Math.abs(outcome.delta)}% integrity)`, 'warn');
-      }
-      document.getElementById('integrity').textContent = integrity;
-      try {
-        // Global best
-        const prev = parseInt(localStorage.getItem('echoes-best-integrity') || '0');
-        if (integrity > prev) localStorage.setItem('echoes-best-integrity', integrity);
-
-        // Per-habitat best for better replay
-        const key = 'echoes-best-' + gameState.habitat;
-        const hprev = parseInt(localStorage.getItem(key) || '0');
-        if (integrity > hprev) localStorage.setItem(key, integrity);
-
-        updateBestDisplay();
-      } catch(e){}
-
-      updateJournal();
-      panel.classList.remove('block');
-      panel.classList.add('hidden');
-      currentClip = null;
-
-      // Strong completion + viral moment
-      if (EchoesCore.shouldCompleteExpedition(logged)) {
-        setTimeout(() => {
-          showExpeditionComplete();
-        }, 450);
-      }
+      fieldLoopIdentify(chosenId);
     }
 
     function cancelIdentify() {
@@ -1256,7 +1259,7 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      console.log('%c[ECHOES] Playtest v1.4.1 — FieldSession single source of truth.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.4.2 — fieldLoopExplore/Record/Identify/Complete.', 'color:#4ade80');
     }
 
     function updateStats() {

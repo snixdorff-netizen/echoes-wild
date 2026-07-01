@@ -28,6 +28,10 @@ import {
   markHabitatDone,
   personaHint,
   initAnimals,
+  activeSpeciesForTime,
+  likelyMatchThreshold,
+  buildIdentifyOptions,
+  simIdentificationBonus,
 } from './echoes-core.mjs';
 import { FieldSession } from './field-session.mjs';
 
@@ -69,6 +73,10 @@ const body = `/* eslint-disable */
   ${fnSource(shouldCompleteExpedition)}
   ${fnSource(markHabitatDone)}
   ${fnSource(personaHint)}
+  ${fnSource(activeSpeciesForTime)}
+  ${fnSource(likelyMatchThreshold)}
+  ${fnSource(buildIdentifyOptions)}
+  ${fnSource(simIdentificationBonus)}
 
   ${fieldSessionSrc}
 
@@ -95,6 +103,10 @@ const body = `/* eslint-disable */
     shouldCompleteExpedition: shouldCompleteExpedition,
     markHabitatDone: markHabitatDone,
     personaHint: personaHint,
+    activeSpeciesForTime: activeSpeciesForTime,
+    likelyMatchThreshold: likelyMatchThreshold,
+    buildIdentifyOptions: buildIdentifyOptions,
+    simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

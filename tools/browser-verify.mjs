@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SPECIES, activeSpeciesForTime } from './echoes-core.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -19,9 +20,10 @@ const html = readFileSync(join(root, 'index.html'), 'utf8');
 
 function staticChecks() {
   return {
-    parsesScriptBlock: html.includes('function recordClip') && html.includes('function submitIdentification'),
+    parsesScriptBlock: html.includes('function fieldLoopRecord') && html.includes('function fieldLoopIdentify'),
     echoesCoreLoaded: html.includes('echoes-core.browser.js'),
     fieldSessionHook: html.includes('__echoesSession') && html.includes('FieldSession'),
+    buildIdentifyOptions: html.includes('buildIdentifyOptions'),
     mobileHud: html.includes('id="mobile-hud"'),
     personaSelect: html.includes('id="persona"'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
@@ -64,6 +66,7 @@ async function tryPlaywright() {
   await page.evaluate(() => {
     localStorage.setItem('echoes-onboarding-v1', '1');
     localStorage.setItem('echoes-playtest-seen-help', '1');
+    localStorage.setItem('echoes-persona', 'liam');
   });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1100);
@@ -100,15 +103,52 @@ async function tryPlaywright() {
   await page.keyboard.press('r');
   await page.waitForTimeout(400);
 
-  const state2 = await page.evaluate(() => {
+  const identifyUi = await page.evaluate(() => {
     const s = window.__echoesSession.getState();
     const panel = document.getElementById('identify-panel');
+    const opts = document.getElementById('identify-options');
+    const buttons = opts ? [...opts.querySelectorAll('button')] : [];
     return {
       hasClip: !!s.currentClip,
       recordCount: s.recordCount,
       identifyVisible: panel && !panel.classList.contains('hidden'),
+      optionCount: buttons.length,
+      hasMostLikely: (opts?.innerHTML || '').includes('Most likely'),
+      timeOfDay: s.gameState.timeOfDay,
+      dominantId: s.currentClip?.dominant?.id || null,
+      quality: s.currentClip?.quality || 0,
     };
   });
+
+  const expectedActive = activeSpeciesForTime(SPECIES, identifyUi.timeOfDay || 'dawn').length;
+
+  let finalStretchToast = false;
+  for (let round = 0; round < 4; round++) {
+    if (!identifyUi.dominantId && round > 0) break;
+    const domId = await page.evaluate(() => window.__echoesSession.getState().currentClip?.dominant?.id);
+    if (!domId) {
+      await page.keyboard.down('l');
+      for (let i = 0; i < 30; i++) await page.waitForTimeout(16);
+      await page.keyboard.up('l');
+      await page.keyboard.press('r');
+      await page.waitForTimeout(350);
+    }
+    const clickId = domId || identifyUi.dominantId;
+    if (!clickId) break;
+    await page.evaluate((speciesId) => {
+      if (typeof submitIdentification === 'function') submitIdentification(speciesId);
+    }, clickId);
+    await page.waitForTimeout(500);
+    const toastText = await page.evaluate(() => document.getElementById('toast')?.textContent || '');
+    if (toastText.includes('final stretch')) finalStretchToast = true;
+    if (round < 3) {
+      await page.keyboard.down('l');
+      for (let i = 0; i < 25; i++) await page.waitForTimeout(16);
+      await page.keyboard.up('l');
+      await page.keyboard.press('r');
+      await page.waitForTimeout(350);
+    }
+  }
 
   const dims = await page.evaluate(() => {
     const c = document.getElementById('game');
@@ -135,7 +175,9 @@ async function tryPlaywright() {
     gateClicked,
     facingChanged: Math.abs(facingAfter - facingBefore) > 0.05,
     listenTicks,
-    state2,
+    identifyUi,
+    expectedActive,
+    finalStretchToast,
     painted,
     facingBefore,
     facingAfter,
@@ -144,7 +186,7 @@ async function tryPlaywright() {
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification (FieldSession)', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (FieldSession v1.4.2)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;
@@ -171,7 +213,14 @@ async function main() {
   log.push('audio gate clicked: ' + pw.gateClicked);
   log.push('listen ticks via rAF loop: ' + pw.listenTicks);
   log.push('facing changed: ' + pw.facingChanged + ' (' + pw.facingBefore.toFixed(3) + ' -> ' + pw.facingAfter.toFixed(3) + ')');
-  log.push('record via KeyR: count=' + pw.state2.recordCount + ' clip=' + pw.state2.hasClip + ' panel=' + pw.state2.identifyVisible);
+  log.push(
+    'record via KeyR: count=' + pw.identifyUi.recordCount +
+    ' clip=' + pw.identifyUi.hasClip +
+    ' panel=' + pw.identifyUi.identifyVisible +
+    ' options=' + pw.identifyUi.optionCount + '/' + pw.expectedActive +
+    ' mostLikely=' + pw.identifyUi.hasMostLikely,
+  );
+  log.push('final stretch toast after 4th log: ' + pw.finalStretchToast);
   log.push('nonzero pixels: ' + pw.painted);
   log.push('page errors: ' + (pw.errors.length ? pw.errors.join('; ') : 'none'));
   log.push('screenshot: ' + join(scratch, 'launch.png'));
@@ -185,8 +234,12 @@ async function main() {
     pw.gateClicked &&
     pw.listenTicks > 5 &&
     pw.facingChanged &&
-    pw.state2.recordCount >= 1 &&
-    pw.state2.identifyVisible &&
+    pw.identifyUi.recordCount >= 1 &&
+    pw.identifyUi.identifyVisible &&
+    pw.identifyUi.optionCount === pw.expectedActive &&
+    pw.identifyUi.optionCount < SPECIES.length &&
+    pw.identifyUi.hasMostLikely &&
+    pw.finalStretchToast &&
     pw.painted > 1000 &&
     Object.values(checks).every(Boolean);
   process.exit(ok ? 0 : 1);

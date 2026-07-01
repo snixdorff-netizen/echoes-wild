@@ -114,9 +114,15 @@ const qualitySpread = {
 };
 
 const segmentRecommendMin = {
+  naturalist: 4.95,
+  educator: 4.95,
+  gamer: 4.95,
   general: 4.95,
 };
 const segmentCompletionMin = {
+  naturalist: 0.98,
+  educator: 0.98,
+  gamer: 0.98,
   general: 0.98,
 };
 
@@ -147,7 +153,9 @@ const report = {
 };
 
 const outPath = join(scratch, 'sim-report.json');
+const seedPath = join(scratch, `sim-report-seed${seed}.json`);
 writeFileSync(outPath, JSON.stringify(report, null, 2));
+writeFileSync(seedPath, JSON.stringify(report, null, 2));
 
 console.log('ECHOES 100-player simulation (FieldSession)');
 console.log('  players:', report.playerCount);
@@ -161,6 +169,6 @@ for (const [k, s] of Object.entries(bySegment)) {
     `  ${k}: fun ${s.meanFun.toFixed(2)}, recommend ${s.meanWouldRecommend.toFixed(2)}, completion ${(s.completionRate * 100).toFixed(0)}%, delights: ${s.delightMoments.join(', ')}`,
   );
 }
-console.log('  wrote:', outPath);
+console.log('  wrote:', outPath, 'and', seedPath);
 
 process.exit(passed ? 0 : 1);
