@@ -366,6 +366,51 @@ export function scoreSessionRubric({
       else clarity -= 0.1;
     }
     if (f === 'id_card_miss' && completed) clarity += 0.05;
+    if (f === 'controls_overwhelming') {
+      clarity -= 1.4;
+      fun -= 0.9;
+      wouldRecommend -= 0.55;
+    }
+    if (f === 'poor_visual_fidelity') {
+      fun -= 0.75;
+      enthusiasm -= 0.6;
+      wouldRecommend -= 0.35;
+    }
+    if (f === 'skipped_guided_coach') clarity -= 0.35;
+    if (f === 'skipped_onboarding') clarity -= 0.45;
+    if (f === 'never_understood_loop') {
+      clarity -= 1.6;
+      fun -= 1.1;
+      wouldRecommend -= 0.7;
+    }
+    if (f === 'unclear_goal') clarity -= 0.9;
+    if (f === 'cant_find_animals') {
+      clarity -= 0.85;
+      fun -= 0.5;
+    }
+    if (f === 'never_used_listen') clarity -= 0.7;
+    if (f === 'identify_panel_confusing') clarity -= 0.4;
+    if (f === 'quit_before_payoff') {
+      fun -= 1.4;
+      wouldRecommend -= 0.65;
+      enthusiasm -= 0.8;
+    }
+    if (f === 'lost_in_habitat') clarity -= 0.5;
+    if (f === 'recorded_before_listening') clarity -= 0.35;
+  }
+
+  if (delights.includes('guided_coach_complete')) {
+    clarity += 0.55;
+    fun += 0.35;
+    wouldRecommend += 0.2;
+  }
+  if (delights.includes('canvas_compass_used')) {
+    clarity += 0.4;
+    fun += 0.2;
+  }
+  if (delights.includes('mission_bar_clarity')) {
+    clarity += 0.35;
+    wouldRecommend += 0.15;
   }
 
   if (segment === 'naturalist' && delights.includes('field_report_share')) wouldRecommend += 0.25;
@@ -396,7 +441,7 @@ export { driveFieldSession } from './sim-drive.mjs';
 export function readShippedFeaturesFromHtml(html) {
   return {
     onboardingSteps: (html.match(/ONBOARD_STEPS/g) || []).length >= 1 ? 3 : 0,
-    mobileHud: html.includes('id="mobile-hud"'),
+    mobileHud: html.includes('id="control-dock"') || html.includes('id="mobile-hud"'),
     integrityToasts: html.includes('function showToast') && html.includes("integrity +"),
     personaHints: html.includes('function personaHint'),
     habitatCtas: html.includes('Try Marsh') || html.includes('nextHabitatBtns'),
@@ -408,5 +453,10 @@ export function readShippedFeaturesFromHtml(html) {
     nearestCallerHint: html.includes('id="nearest-hint"'),
     activeSpeciesFilter: html.includes('buildIdentifyOptions'),
     likelyMatchLabel: html.includes('Most likely'),
+    controlDock: html.includes('id="control-dock"'),
+    missionBar: html.includes('id="mission-bar"'),
+    guidedCoach: html.includes('id="guided-coach"'),
+    canvasCompass: html.includes('drawCanvasCompass'),
+    enhancedGraphics: html.includes('drawEnhancedHabitat'),
   };
 }

@@ -26,7 +26,10 @@ function staticChecks() {
     speciesDataAttr: html.includes('dataset.speciesId'),
     echoesCoreLoaded: html.includes('echoes-core.browser.js'),
     fieldSessionHook: html.includes('__echoesSession') && html.includes('FieldSession'),
-    mobileHud: html.includes('id="mobile-hud"'),
+    mobileHud: html.includes('id="control-dock"') || html.includes('id="mobile-hud"'),
+    missionBar: html.includes('id="mission-bar"'),
+    guidedCoach: html.includes('id="guided-coach"'),
+    canvasCompass: html.includes('drawCanvasCompass'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
   };

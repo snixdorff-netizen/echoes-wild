@@ -17,11 +17,22 @@
     .species-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); }
     #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; font-size: 12px; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .2s; max-width: 90vw; text-align: center; }
     #toast.show { opacity: 1; }
-    #mobile-hud { display: none; position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 12px); padding: 0 12px 8px; gap: 8px; justify-content: center; z-index: 40; }
-    #mobile-hud button { flex: 1; max-width: 110px; min-height: 48px; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); background: rgba(15,35,28,.92); color: #e2e8f0; font-size: 11px; font-weight: 600; touch-action: manipulation; }
-    #mobile-hud button.active { background: rgba(16,185,129,.35); border-color: rgba(74,222,128,.5); }
-    #mobile-hud button.record { background: rgba(220,38,38,.85); border-color: rgba(248,113,113,.6); }
-    @media (max-width: 768px) { body { padding: 12px; } #mobile-hud { display: flex; } .desktop-hint { display: none; } h1 { font-size: 2rem !important; } }
+    #control-dock, #mobile-hud { display: flex; position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 12px); padding: 0 12px 8px; gap: 10px; justify-content: center; z-index: 40; }
+    #control-dock button, #mobile-hud button { flex: 1; max-width: 140px; min-height: 52px; border-radius: 16px; border: 1px solid rgba(255,255,255,.15); background: rgba(15,35,28,.94); color: #e2e8f0; font-size: 12px; font-weight: 700; touch-action: manipulation; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+    #control-dock button.active, #mobile-hud button.active { background: rgba(16,185,129,.45); border-color: rgba(74,222,128,.6); }
+    #control-dock button.record, #mobile-hud button.record { background: rgba(220,38,38,.9); border-color: rgba(248,113,113,.65); }
+    #control-dock button:disabled, #mobile-hud button:disabled { opacity: 0.45; filter: grayscale(0.4); }
+    #mission-bar { display: flex; gap: 6px; margin: 8px 0 10px; flex-wrap: wrap; justify-content: center; }
+    #mission-bar .step { padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04); color: rgba(226,232,240,.55); transition: all .2s; }
+    #mission-bar .step.active { background: rgba(16,185,129,.25); border-color: rgba(74,222,128,.45); color: #a7f3d0; box-shadow: 0 0 20px rgba(52,211,153,.15); }
+    #mission-bar .step.done { background: rgba(6,78,59,.35); color: #6ee7b7; }
+    #guided-coach { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 56; max-width: 420px; width: calc(100% - 24px); padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, rgba(6,78,59,.95), rgba(15,35,28,.98)); border: 1px solid rgba(74,222,128,.35); box-shadow: 0 20px 50px rgba(0,0,0,.45); }
+    #guided-coach.hidden { display: none !important; }
+    #guided-coach .coach-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #6ee7b7; }
+    #guided-coach .coach-body { font-size: 12px; color: rgba(226,232,240,.85); line-height: 1.45; }
+    #guided-coach .coach-progress { margin-top: 8px; height: 4px; border-radius: 4px; background: rgba(0,0,0,.3); overflow: hidden; }
+    #guided-coach .coach-progress > div { height: 100%; background: linear-gradient(90deg, #34d399, #10b981); transition: width .3s; }
+    @media (max-width: 768px) { body { padding: 12px; } .desktop-hint { display: none; } h1 { font-size: 2rem !important; } #guided-coach { top: 56px; } }
     #onboard { position: fixed; inset: 0; background: rgba(0,0,0,.78); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; }
     #audio-gate { z-index: 54; }
     #onboard .card { background: #0f231c; border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 420px; width: 100%; padding: 20px; }
@@ -60,14 +71,29 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4.3 — pure helpers inlined. Hold L, record, identify. Tap Feedback when done.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v1.5 — use the dock below: Listen → Record → Identify. Coach guides your first clip.</span>
+  </div>
+
+  <div id="mission-bar" aria-label="Expedition steps">
+    <span class="step active" data-step="explore">① Explore</span>
+    <span class="step" data-step="listen">② Listen</span>
+    <span class="step" data-step="record">③ Record</span>
+    <span class="step" data-step="identify">④ Identify</span>
+    <span class="step" data-step="report">⑤ Field Report</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
-  <div id="mobile-hud" aria-label="Touch controls">
-    <button id="btn-listen" type="button">🎧 Listen</button>
-    <button id="btn-record" type="button" class="record">⏺ Record</button>
-    <button id="btn-time" type="button">⏱ Time</button>
+
+  <div id="guided-coach" class="hidden" role="dialog" aria-live="polite">
+    <div class="coach-title" id="coach-title">Field Coach</div>
+    <div class="coach-body" id="coach-body">Loading expedition briefing…</div>
+    <div class="coach-progress"><div id="coach-progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="control-dock" aria-label="Primary controls">
+    <button id="btn-listen" type="button" title="Hold to aim directional mic (L)">🎧 Listen</button>
+    <button id="btn-record" type="button" class="record" title="Record clip while listening (R)" disabled>⏺ Record</button>
+    <button id="btn-time" type="button" title="Advance time of day (T)">⏱ Time</button>
   </div>
   <div id="toast" role="status"></div>
   <div id="audio-gate" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
@@ -133,7 +159,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.4.4-jul2026';
+    const BUILD_VERSION = 'playtest-v1.5-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -211,7 +237,9 @@
       ensureAudio();
       const gate = document.getElementById('audio-gate');
       if (gate) gate.classList.add('hidden');
-      showToast('Soundscape unlocked — hold Listen and explore!', 'good');
+      showToast('Soundscape unlocked — hold 🎧 Listen and follow the compass!', 'good');
+      advanceCoach('audio');
+      startGuidedCoach();
     }
 
     function syncFromSession() {
@@ -263,10 +291,79 @@
     }
 
     const ONBOARD_STEPS = [
-      { title: 'Listen like a field biologist', body: 'Move with WASD or tap the canvas. Hold Listen (L, touch 🎧, or mouse) — L auto-aims the nearest caller; animals get louder when you face them.' },
-      { title: 'Record and identify', body: 'While listening, press Record (R or ⏺). Pick the species from the cards — the mini spectrogram hints at call shape (bat FM sweeps, bird whistles, frog peeps).' },
-      { title: 'Complete + share', body: 'Log all 6 species in a habitat, copy your Field Report, then try Marsh or Canyon. Hit Feedback when your session ends — that data shapes the next playtest.' }
+      { title: 'Your expedition', body: 'You are a field acoustics researcher. Log 6 species in this habitat to publish your Field Report. Follow the mission bar and coach below the map.' },
+      { title: 'Listen → Record → Identify', body: 'Use the bottom dock: hold 🎧 Listen to aim the green cone at glowing callers. Then tap ⏺ Record. Pick the species card (★ = best match on fair clips).' },
+      { title: 'Complete + share', body: 'Log 6/6 species, copy your Field Report, try Marsh or Canyon. The compass arrow on the map points to the nearest active caller.' }
     ];
+
+    const COACH_STEPS = [
+      { title: 'Enter the soundscape', body: 'Tap "Enable sound" when prompted. Animals only call at certain times — use ⏱ Time if it\'s quiet.', progress: 10 },
+      { title: 'Hold Listen', body: 'Press and hold 🎧 Listen (or L). Watch the green cone — follow the compass arrow to the glowing caller.', progress: 30, needsListen: true },
+      { title: 'Record the call', body: 'While listening, tap ⏺ Record. Get close and face the animal for a CLEAN clip.', progress: 55, needsRecord: true },
+      { title: 'Identify the species', body: 'Tap the species card that matches the call. ★ Most likely appears on fair+ recordings.', progress: 80, needsIdentify: true },
+      { title: 'Keep exploring', body: 'Repeat until 6/6 logged. Mission bar tracks your loop. Need help? Tap Help anytime.', progress: 100 },
+    ];
+    let coachIndex = 0;
+    let coachListenTicks = 0;
+    let coachActive = false;
+    let coachCompleted = false;
+
+    function updateMissionBar(phase) {
+      const steps = document.querySelectorAll('#mission-bar .step');
+      const order = ['explore', 'listen', 'record', 'identify', 'report'];
+      const idx = order.indexOf(phase);
+      steps.forEach((el, i) => {
+        el.classList.remove('active', 'done');
+        if (i < idx) el.classList.add('done');
+        else if (i === idx) el.classList.add('active');
+      });
+      if (phase === 'report' && logged >= 6) steps.forEach(el => el.classList.add('done'));
+    }
+
+    function renderCoach() {
+      const panel = document.getElementById('guided-coach');
+      if (!panel || !coachActive) return;
+      const step = COACH_STEPS[coachIndex] || COACH_STEPS[COACH_STEPS.length - 1];
+      document.getElementById('coach-title').textContent = step.title;
+      document.getElementById('coach-body').textContent = step.body;
+      document.getElementById('coach-progress-fill').style.width = step.progress + '%';
+      panel.classList.remove('hidden');
+    }
+
+    function startGuidedCoach() {
+      try {
+        if (localStorage.getItem('echoes-coach-v1') === '1') return;
+      } catch (e) {}
+      coachActive = true;
+      coachIndex = 0;
+      renderCoach();
+      updateMissionBar('explore');
+    }
+
+    function advanceCoach(check) {
+      if (!coachActive || coachCompleted) return;
+      const step = COACH_STEPS[coachIndex];
+      if (!step) return;
+      if (check === 'audio' && coachIndex === 0) { coachIndex = 1; renderCoach(); updateMissionBar('listen'); }
+      if (check === 'listen' && coachIndex === 1 && coachListenTicks >= 25) { coachIndex = 2; renderCoach(); }
+      if (check === 'record' && coachIndex === 2) { coachIndex = 3; renderCoach(); updateMissionBar('identify'); }
+      if (check === 'identify' && coachIndex === 3) {
+        coachIndex = 4;
+        coachCompleted = true;
+        renderCoach();
+        try { localStorage.setItem('echoes-coach-v1', '1'); } catch (e) {}
+        setTimeout(() => {
+          const panel = document.getElementById('guided-coach');
+          if (panel) panel.classList.add('hidden');
+          coachActive = false;
+        }, 3200);
+      }
+    }
+
+    function setRecordDockEnabled(on) {
+      const btn = document.getElementById('btn-record');
+      if (btn) btn.disabled = !on;
+    }
 
     function renderOnboarding() {
       const step = ONBOARD_STEPS[onboardingStep];
@@ -639,6 +736,8 @@
         particles.push({ x: best.x + (Math.random() - 0.5) * 18, y: best.y + (Math.random() - 0.5) * 18, vx: (Math.random() - 0.5) * 2.2, vy: (Math.random() - 0.5) * 1.8 - 0.6, life: 14, size: 2.8, color: best.species.color });
       }
       playCall(best.species, 0.95 * clip.quality, (best.x - player.x) / 580, 1);
+      updateMissionBar('record');
+      advanceCoach('record');
       showIdentifyUI(clip);
       return clip;
     }
@@ -674,6 +773,10 @@
         }
         const shareBtn = document.getElementById('share-btn');
         if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
+        advanceCoach('identify');
+        updateMissionBar(logged >= 6 ? 'report' : 'explore');
+        setRecordDockEnabled(false);
+        coachListenTicks = 0;
       } else {
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s => s.id === chosenId).name });
         showToast(`${personaHint('miss')} (−${Math.abs(outcome.delta)}% integrity)`, 'warn');
@@ -707,6 +810,14 @@
       const prevDashing = isDashing;
 
       fieldLoopExplore(now, dt);
+      if (listenActive) {
+        coachListenTicks++;
+        if (coachListenTicks >= 25) {
+          setRecordDockEnabled(true);
+          advanceCoach('listen');
+          updateMissionBar('listen');
+        }
+      }
       wasMouseDown = mouse.down;
 
       if (isDashing && !prevDashing) {
@@ -783,25 +894,82 @@
       lastFrame = now;
     }
 
+    function drawEnhancedHabitat(w, h) {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      if (gameState.habitat === 'marsh') {
+        sky.addColorStop(0, '#0a1f2e'); sky.addColorStop(1, '#0a2622');
+      } else if (gameState.habitat === 'canyon') {
+        sky.addColorStop(0, '#2a1810'); sky.addColorStop(1, '#1a120c');
+      } else {
+        sky.addColorStop(0, '#0c2838'); sky.addColorStop(1, '#07140f');
+      }
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+      const ground = gameState.habitat === 'marsh' ? '#0a2622' : (gameState.habitat === 'canyon' ? '#2a2116' : '#0c2119');
+      ctx.fillStyle = ground;
+      ctx.fillRect(0, 95, w, 530);
+      ctx.fillStyle = 'rgba(255,255,255,0.02)';
+      for (let i = 0; i < 12; i++) ctx.fillRect(i * 74, 120 + (i % 3) * 40, 60, 2);
+      if (gameState.habitat === 'marsh') {
+        ctx.fillStyle = '#1a4a3a';
+        for (let i = 0; i < 18; i++) {
+          const rx = 40 + i * 48;
+          ctx.fillRect(rx, 380, 6, 90 + (i % 4) * 12);
+          ctx.beginPath(); ctx.ellipse(rx + 3, 370, 14, 8, 0, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (gameState.habitat === 'canyon') {
+        ctx.fillStyle = '#4a3528';
+        ctx.beginPath(); ctx.moveTo(0, 200); ctx.lineTo(200, 140); ctx.lineTo(400, 220); ctx.lineTo(0, 280); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(480, 160); ctx.lineTo(880, 120); ctx.lineTo(880, 300); ctx.lineTo(520, 260); ctx.fill();
+      }
+      const treeColor = gameState.habitat === 'canyon' ? '#3f2a1f' : '#1f3c2d';
+      ctx.fillStyle = treeColor;
+      [160, 300, 470, 630, 760].forEach((x, i) => {
+        const ty = 165 + i * 28;
+        const tr = 52 + (i % 2) * 14;
+        const g = ctx.createRadialGradient(x, ty, 8, x, ty, tr);
+        g.addColorStop(0, '#2d5a40'); g.addColorStop(1, treeColor);
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(x, ty, tr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2a231b';
+        ctx.fillRect(x - 5, ty + 30, 10, 58);
+        ctx.fillStyle = treeColor;
+      });
+    }
+
+    function drawCanvasCompass() {
+      const nearest = EchoesCore.nearestActiveCaller({ x: player.x, y: player.y }, animals, gameState.timeOfDay);
+      if (!nearest.animal) return;
+      const dx = nearest.animal.x - player.x;
+      const dy = nearest.animal.y - player.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const ux = dx / dist;
+      const uy = dy / dist;
+      const ax = player.x + ux * 42;
+      const ay = player.y + uy * 42;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
+      ctx.fillStyle = 'rgba(52, 211, 153, 0.9)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(ax, ay);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ax - ux * 12 - uy * 6, ay - uy * 12 + ux * 6);
+      ctx.lineTo(ax - ux * 12 + uy * 6, ay - uy * 12 - ux * 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.font = 'bold 11px system-ui';
+      ctx.fillStyle = 'rgba(167, 243, 208, 0.95)';
+      ctx.fillText(nearest.animal.species.name.split(' ').pop(), ax + 8, ay - 8);
+      ctx.restore();
+    }
+
     function render() {
       const w = canvas.width, h = canvas.height;
-      ctx.fillStyle = '#07140f';
-      ctx.fillRect(0, 0, w, h);
-
-      // ground / habitat tint
-      ctx.fillStyle = gameState.habitat === 'marsh' ? '#0a2622' : (gameState.habitat === 'canyon' ? '#2a2116' : '#0c2119');
-      ctx.fillRect(0, 95, w, 530);
-
-      // simple trees / foliage
-      ctx.fillStyle = gameState.habitat === 'canyon' ? '#3f2a1f' : '#1f3c2d';
-      [160,300,470,630,760].forEach((x, i) => {
-        ctx.beginPath();
-        ctx.arc(x, 165 + i*28, 52 + (i%2)*14, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = '#2a231b';
-        ctx.fillRect(x-5, 195 + i*28, 10, 58);
-        ctx.fillStyle = gameState.habitat === 'canyon' ? '#3f2a1f' : '#1f3c2d';
-      });
+      drawEnhancedHabitat(w, h);
 
       // Animals (Pac-Man sized chunky)
       animals.forEach(a => {
@@ -834,19 +1002,26 @@
         }
         ctx.restore();
 
-        // call rings (bigger scale)
         const since = performance.now() - (a.lastCall || 0);
-        if (since < 820) {
+        const calling = since < 820 && active;
+        if (calling) {
           const r = 29 + (since / 820) * 105;
           ctx.strokeStyle = a.species.color;
-          ctx.globalAlpha = 0.38 * (1 - since / 820);
-          ctx.lineWidth = 4.5;
-          ctx.beginPath();
-          ctx.arc(a.x, a.y, r, 0, Math.PI * 2);
-          ctx.stroke();
+          ctx.globalAlpha = 0.45 * (1 - since / 820);
+          ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.arc(a.x, a.y + bob, r, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 0.35;
+          ctx.fillStyle = a.species.color;
+          ctx.beginPath(); ctx.arc(a.x, a.y + bob, 34, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
+          ctx.font = '600 10px system-ui';
+          ctx.fillStyle = '#ecfdf5';
+          ctx.fillText('♪ ' + a.species.name.split(' ').pop(), a.x - 28, a.y + bob - 38);
+        } else if (!active) {
+          ctx.globalAlpha = 0.35;
         }
       });
+      ctx.globalAlpha = 1;
 
       // Particles
       particles.forEach(p => {
@@ -911,18 +1086,22 @@
 
       ctx.restore();
 
-      // LISTEN CONE (the important directional feedback)
+      drawCanvasCompass();
+
       if (listenActive) {
         ctx.save();
         ctx.translate(player.x, player.y);
         ctx.rotate(player.facing || 0);
-        ctx.fillStyle = 'rgba(52, 211, 153, 0.13)';
-        ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
-        ctx.lineWidth = 2;
+        const cone = ctx.createLinearGradient(0, 0, 200, 0);
+        cone.addColorStop(0, 'rgba(52, 211, 153, 0.35)');
+        cone.addColorStop(1, 'rgba(52, 211, 153, 0.05)');
+        ctx.fillStyle = cone;
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.65)';
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(195, -38);
-        ctx.lineTo(195, 38);
+        ctx.lineTo(210, -48);
+        ctx.lineTo(210, 48);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
