@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Browser launch verification for ECHOES index.html — real UI input path.
+ * Browser verification — real keyboard input driving FieldSession via index.html.
  */
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
@@ -21,11 +21,11 @@ function staticChecks() {
   return {
     parsesScriptBlock: html.includes('function recordClip') && html.includes('function submitIdentification'),
     echoesCoreLoaded: html.includes('echoes-core.browser.js'),
+    fieldSessionHook: html.includes('__echoesSession') && html.includes('FieldSession'),
     mobileHud: html.includes('id="mobile-hud"'),
     personaSelect: html.includes('id="persona"'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
-    debugStateHook: html.includes('getEchoesDebugState'),
   };
 }
 
@@ -77,26 +77,43 @@ async function tryPlaywright() {
   } catch (e) {
     errors.push('audio-gate click failed: ' + e.message);
   }
+
+  const state0 = await page.evaluate(() => {
+    const s = window.__echoesSession;
+    if (!s) return { error: 'no __echoesSession' };
+    return s.getState();
+  });
+  if (state0.error) errors.push(state0.error);
+
+  const facingBefore = state0.player?.facing ?? 0;
+
+  await page.keyboard.down('l');
+  for (let i = 0; i < 45; i++) {
+    await page.waitForTimeout(16);
+  }
+  await page.keyboard.up('l');
+
+  const state1 = await page.evaluate(() => window.__echoesSession.getState());
+  const facingAfter = state1.player?.facing ?? 0;
+  const listenTicks = state1.listenTicksSession;
+
+  await page.keyboard.press('r');
   await page.waitForTimeout(400);
+
+  const state2 = await page.evaluate(() => {
+    const s = window.__echoesSession.getState();
+    const panel = document.getElementById('identify-panel');
+    return {
+      hasClip: !!s.currentClip,
+      recordCount: s.recordCount,
+      identifyVisible: panel && !panel.classList.contains('hidden'),
+    };
+  });
 
   const dims = await page.evaluate(() => {
     const c = document.getElementById('game');
-    return { w: c.width, h: c.height, clientW: c.clientWidth };
+    return { w: c.width, h: c.height };
   });
-
-  const facingBefore = await page.evaluate(() => window.getEchoesDebugState().facing);
-  await page.keyboard.down('l');
-  await page.waitForTimeout(700);
-  const listenState = await page.evaluate(() => window.getEchoesDebugState());
-  await page.keyboard.up('l');
-
-  await page.keyboard.press('r');
-  await page.waitForTimeout(350);
-  const identifyVisible = await page.evaluate(() => {
-    const p = document.getElementById('identify-panel');
-    return p && !p.classList.contains('hidden');
-  });
-
   const painted = await page.evaluate(() => {
     const c = document.getElementById('game');
     const ctx = c.getContext('2d');
@@ -112,23 +129,22 @@ async function tryPlaywright() {
   await browser.close();
   server.close();
 
-  const facingChanged = Math.abs(listenState.facing - facingBefore) > 0.05;
   return {
     errors,
     dims,
-    identifyVisible,
-    painted,
     gateClicked,
-    listenActiveDuringL: listenState.listenActive,
-    facingChanged,
+    facingChanged: Math.abs(facingAfter - facingBefore) > 0.05,
+    listenTicks,
+    state2,
+    painted,
     facingBefore,
-    facingAfter: listenState.facing,
+    facingAfter,
   };
 }
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (FieldSession)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;
@@ -148,14 +164,14 @@ async function main() {
   try {
     unlinkSync(fallbackPath);
   } catch {
-    /* no stale fallback */
+    /* none */
   }
 
   log.push('playwright dims: ' + JSON.stringify(pw.dims));
   log.push('audio gate clicked: ' + pw.gateClicked);
-  log.push('listen active during L: ' + pw.listenActiveDuringL);
-  log.push('facing changed with L held: ' + pw.facingChanged + ' (' + pw.facingBefore.toFixed(3) + ' -> ' + pw.facingAfter.toFixed(3) + ')');
-  log.push('identify panel after KeyR: ' + pw.identifyVisible);
+  log.push('listen ticks via rAF loop: ' + pw.listenTicks);
+  log.push('facing changed: ' + pw.facingChanged + ' (' + pw.facingBefore.toFixed(3) + ' -> ' + pw.facingAfter.toFixed(3) + ')');
+  log.push('record via KeyR: count=' + pw.state2.recordCount + ' clip=' + pw.state2.hasClip + ' panel=' + pw.state2.identifyVisible);
   log.push('nonzero pixels: ' + pw.painted);
   log.push('page errors: ' + (pw.errors.length ? pw.errors.join('; ') : 'none'));
   log.push('screenshot: ' + join(scratch, 'launch.png'));
@@ -167,9 +183,10 @@ async function main() {
     pw.dims.w === 880 &&
     pw.dims.h === 620 &&
     pw.gateClicked &&
-    pw.listenActiveDuringL &&
+    pw.listenTicks > 5 &&
     pw.facingChanged &&
-    pw.identifyVisible &&
+    pw.state2.recordCount >= 1 &&
+    pw.state2.identifyVisible &&
     pw.painted > 1000 &&
     Object.values(checks).every(Boolean);
   process.exit(ok ? 0 : 1);

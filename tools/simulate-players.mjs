@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * 100-player persona simulation — PLAYTEST.md segments × in-game personas.
- * Writes sim-report.json to SCRATCH (env ECHOES_SCRATCH or argv[2]).
+ * 100-player persona simulation — drives FieldSession via sim-drive (fixed 8-record budget).
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   SEGMENTS,
-  runPlayerSession,
+  RECORD_BUDGET,
   readShippedFeaturesFromHtml,
 } from './echoes-core.mjs';
+import { driveFieldSession } from './sim-drive.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -32,8 +32,6 @@ function seededRandom(s) {
   };
 }
 const rand = seededRandom(seed);
-const _random = Math.random;
-Math.random = rand;
 
 const players = [];
 let id = 0;
@@ -46,7 +44,7 @@ for (const [segmentKey, seg] of Object.entries(SEGMENTS)) {
       gamer: 0.9,
       general: 0.82,
     };
-    const session = runPlayerSession({
+    const session = driveFieldSession({
       segment: segmentKey,
       persona: seg.persona,
       habitat: ['forest', 'marsh', 'canyon'][i % 3],
@@ -55,6 +53,7 @@ for (const [segmentKey, seg] of Object.entries(SEGMENTS)) {
       usesMobileHud: i % 3 === 0,
       features,
       rng: rand,
+      recordBudget: RECORD_BUDGET,
     });
     players.push({
       id,
@@ -67,12 +66,11 @@ for (const [segmentKey, seg] of Object.entries(SEGMENTS)) {
       delights: session.delights,
       friction: session.friction,
       integrity: session.integrity,
+      logged: session.logged,
       journal: session.journal,
     });
   }
 }
-
-Math.random = _random;
 
 function mean(arr) {
   return arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -111,7 +109,8 @@ const thresholds = {
 const qualitySpread = {
   min: Math.min(...players.map((p) => p.journal?.[0]?.quality ?? 1)),
   max: Math.max(...players.map((p) => p.journal?.[0]?.quality ?? 0)),
-  meanAttempts: mean(players.map((p) => p.attempts || 6)),
+  meanAttempts: mean(players.map((p) => p.attempts || 0)),
+  recordBudget: RECORD_BUDGET,
 };
 
 const passed =
@@ -124,6 +123,8 @@ const report = {
   build: (html.match(/BUILD_VERSION = '([^']+)'/) || [])[1] || 'unknown',
   seed,
   playerCount: players.length,
+  engine: 'FieldSession',
+  recordBudget: RECORD_BUDGET,
   features,
   aggregate,
   qualitySpread,
@@ -136,14 +137,17 @@ const report = {
 const outPath = join(scratch, 'sim-report.json');
 writeFileSync(outPath, JSON.stringify(report, null, 2));
 
-console.log('ECHOES 100-player simulation');
+console.log('ECHOES 100-player simulation (FieldSession)');
 console.log('  players:', report.playerCount);
+console.log('  record budget:', RECORD_BUDGET);
 console.log('  mean fun:', aggregate.meanFun.toFixed(2), '/ 10');
 console.log('  mean would-recommend:', aggregate.meanWouldRecommend.toFixed(2), '/ 5');
 console.log('  completion:', (aggregate.completionRate * 100).toFixed(0) + '%');
 console.log('  passed:', passed);
 for (const [k, s] of Object.entries(bySegment)) {
-  console.log(`  ${k}: fun ${s.meanFun.toFixed(2)}, recommend ${s.meanWouldRecommend.toFixed(2)}, delights: ${s.delightMoments.join(', ')}`);
+  console.log(
+    `  ${k}: fun ${s.meanFun.toFixed(2)}, recommend ${s.meanWouldRecommend.toFixed(2)}, completion ${(s.completionRate * 100).toFixed(0)}%, delights: ${s.delightMoments.join(', ')}`,
+  );
 }
 console.log('  wrote:', outPath);
 

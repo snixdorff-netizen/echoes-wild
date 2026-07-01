@@ -60,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.3.1 — hold L to auto-aim nearest caller. Tap Feedback when done.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4 — FieldSession engine. Hold L, record, identify. Tap Feedback when done.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -133,7 +133,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.3.1-jul2026';
+    const BUILD_VERSION = 'playtest-v1.4-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -214,6 +214,21 @@
       showToast('Soundscape unlocked — hold Listen and explore!', 'good');
     }
 
+    function syncFromSession() {
+      const s = session.getState();
+      player = s.player;
+      animals = session.animals;
+      listenActive = s.listenActive;
+      logged = s.logged;
+      integrity = s.integrity;
+      gameState = s.gameState;
+      currentClip = s.currentClip;
+      journalEntries = s.journal;
+      isDashing = s.isDashing;
+      isChargingMove = s.isChargingMove;
+      chargeMoveTime = s.chargeMoveTime;
+    }
+
     function updateNearestHint() {
       const el = document.getElementById('nearest-hint');
       if (!el) return;
@@ -226,24 +241,6 @@
         el.textContent = `📡 Nearest caller: ${nearest.animal.species.name} (${Math.round(nearest.distance)}m) — calling now`;
       } else {
         el.textContent = 'No active callers — advance time (T) or switch habitat';
-      }
-    }
-
-    function updateListenFacing(ax, ay) {
-      if (!listenActive) return;
-      if (mouse.listenDown && (Math.abs(mouse.x - player.x) > 8 || Math.abs(mouse.y - player.y) > 8)) {
-        player.facing = Math.atan2(mouse.y - player.y, mouse.x - player.x);
-        return;
-      }
-      const nearest = EchoesCore.nearestActiveCaller(
-        { x: player.x, y: player.y },
-        animals,
-        gameState.timeOfDay
-      );
-      if (nearest.animal) {
-        player.facing = Math.atan2(nearest.animal.y - player.y, nearest.animal.x - player.x);
-      } else if (ax || ay) {
-        player.facing = Math.atan2(ay, ax);
       }
     }
 
@@ -321,6 +318,7 @@
     let masterGain = null;
     let isMuted = false;
 
+    let session;
     let player = { x: 440, y: 310, vx: 0, vy: 0, facing: 0 };
     let keys = {};
     let mouse = { x: 440, y: 310, down: false, listenDown: false };
@@ -510,11 +508,8 @@
     }
 
     function switchHabitat(h) {
-      // Reset for clean per-habitat expedition (better for testing and replay)
-      logged = 0;
-      integrity = 100;
-      journalEntries = [];
-      currentClip = null;
+      session.switchHabitat(h);
+      syncFromSession();
       document.getElementById('logged').textContent = '0/6';
       document.getElementById('integrity').textContent = '100';
       document.getElementById('journal').innerHTML = '';
@@ -524,24 +519,20 @@
       const shareBtn = document.getElementById('share-btn');
       if (shareBtn) shareBtn.classList.add('hidden');
 
-      gameState.habitat = h;
-      // style tabs
       ['forest','marsh','canyon'].forEach(k => {
         const el = document.getElementById('tab-' + k);
         if (el) el.className = (k===h) ? 'px-3.5 py-1 bg-emerald-700/80 hover:bg-emerald-600 font-medium' : 'px-3.5 py-1 bg-white/5 hover:bg-white/10';
       });
       document.getElementById('title').textContent = h === 'marsh' ? 'Cattail Marsh' : (h === 'canyon' ? 'Red Rock Canyon' : 'Old Growth Forest');
-      initAnimals(h);
       particles = [];
-      // give a few initial calls
       animals.forEach((a,i) => { a.lastCall = performance.now() - 600 * i; });
       updateBestDisplay();
     }
 
     function advanceTime() {
       ensureAudio();
-      const idx = timeOrder.indexOf(gameState.timeOfDay);
-      gameState.timeOfDay = timeOrder[(idx + 1) % 4];
+      session.advanceTime();
+      syncFromSession();
       document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
       // fresh particles + trigger some calls visible
       for (let k = 0; k < 7; k++) {
@@ -560,100 +551,34 @@
     function update() {
       const now = performance.now();
       const dt = (now - lastFrame) / 16;
+      const prevDashing = isDashing;
 
-      // input
-      let ax = 0, ay = 0;
-      if (keys['w'] || keys['arrowup']) ay -= 1;
-      if (keys['s'] || keys['arrowdown']) ay += 1;
-      if (keys['a'] || keys['arrowleft']) ax -= 1;
-      if (keys['d'] || keys['arrowright']) ax += 1;
-
-      if (mouse.down && !wasMouseDown && !isDashing) {
-        isChargingMove = true;
-        chargeMoveTime = 0;
-      }
-
-      const spaceHeld = keys[' '];
-      const moveKeysHeld = ax || ay || (keys['w'] || keys['s'] || keys['a'] || keys['d']);
-
-      if ((mouse.down || (moveKeysHeld && spaceHeld)) && !isDashing) {
-        isChargingMove = true;
-        chargeMoveTime += dt * 0.04;
-        // damp while "fingers holding on"
-        player.vx *= 0.65;
-        player.vy *= 0.65;
-      } else if (wasMouseDown && isChargingMove && !mouse.down && !spaceHeld) {
-        // break free and shoot forward on release
-        if (chargeMoveTime > 0.35) {
-          isDashing = true;
-          dashEndTime = performance.now() + 650;
-          const dir = player.facing || Math.atan2(ay || 0, ax || 1);
-          const boost = 6.5 + chargeMoveTime * 9;
-          player.vx = Math.cos(dir) * boost;
-          player.vy = Math.sin(dir) * boost;
-          // break free particles shoot backward
-          for (let k = 0; k < 14; k++) {
-            particles.push({
-              x: player.x - Math.cos(dir) * 15,
-              y: player.y - Math.sin(dir) * 15,
-              vx: -Math.cos(dir) * (1.5 + Math.random() * 2.5),
-              vy: -Math.sin(dir) * (1.5 + Math.random() * 2.5),
-              life: 18 + Math.random() * 12,
-              size: 1.8 + Math.random() * 1.2,
-              color: '#8B5A2B'
-            });
-          }
-        }
-        isChargingMove = false;
-        chargeMoveTime = 0;
-      }
-
-      if (ax || ay) {
-        const len = Math.hypot(ax, ay) || 1;
-        player.vx += (ax / len) * 3.1 * 0.32;
-        player.vy += (ay / len) * 3.1 * 0.32;
-        player.facing = Math.atan2(player.vy, player.vx);
-      }
-      player.vx *= 0.79;
-      player.vy *= 0.79;
-      player.x += player.vx * dt;
-      player.y += player.vy * dt;
-
-      // bounds
-      player.x = Math.max(55, Math.min(825, player.x));
-      player.y = Math.max(75, Math.min(545, player.y));
-
-      if (isDashing && performance.now() > dashEndTime) {
-        isDashing = false;
-      }
-
-      // animals react to dash (scare away when player shoots forward nearby)
-      if (isDashing) {
-        const dashX = player.x;
-        const dashY = player.y;
-        animals.forEach(a => {
-          const dx = a.x - dashX;
-          const dy = a.y - dashY;
-          const dist = Math.hypot(dx, dy);
-          if (dist < 120 && dist > 5) {
-            const push = (120 - dist) / 8;
-            a.x += (dx / dist) * push;
-            a.y += (dy / dist) * push;
-          }
-        });
-      }
-
+      session.tick({
+        keys,
+        mouse: { x: mouse.x, y: mouse.y, down: mouse.down, listenDown: mouse.listenDown },
+        dt,
+        now,
+      });
+      syncFromSession();
       wasMouseDown = mouse.down;
 
-      listenActive = !!(keys['l'] || keys[' '] || mouse.listenDown || mouse.down);
-      updateListenFacing(ax, ay);
+      if (isDashing && !prevDashing) {
+        const dir = player.facing || 0;
+        for (let k = 0; k < 14; k++) {
+          particles.push({
+            x: player.x - Math.cos(dir) * 15,
+            y: player.y - Math.sin(dir) * 15,
+            vx: -Math.cos(dir) * (1.5 + Math.random() * 2.5),
+            vy: -Math.sin(dir) * (1.5 + Math.random() * 2.5),
+            life: 18 + Math.random() * 12,
+            size: 1.8 + Math.random() * 1.2,
+            color: '#8B5A2B'
+          });
+        }
+      }
 
-      // animals wander + call
+      // animal calls (physics/bob handled by FieldSession.tick)
       animals.forEach(a => {
-        a.bobPhase = (a.bobPhase || 0) + 0.029;
-        a.x += Math.sin(a.bobPhase * 0.65) * 0.38;
-        a.y += Math.cos(a.bobPhase * 0.48) * 0.27;
-
         const activeNow = a.activity.includes(gameState.timeOfDay);
         const callInterval = activeNow ? (1250 + Math.random() * 1550) : 5200;
 
@@ -874,29 +799,16 @@
     function recordClip() {
       updateStreak();
       ensureAudio();
-      const rec = EchoesCore.selectRecordingTarget(
-        { x: player.x, y: player.y, facing: player.facing, listenActive },
-        animals,
-        gameState.timeOfDay
-      );
-      const best = rec.dominant || rec.best;
+      const clip = session.record();
+      syncFromSession();
+      if (!clip) return;
+      const best = clip.dominantAnimal || animals.find(a => a.species.id === clip.dominant.id);
 
-      currentClip = {
-        dominant: best.species,
-        quality: rec.quality,
-        timeOfDay: gameState.timeOfDay,
-        habitat: gameState.habitat,
-        ts: Date.now()
-      };
-
-      // visual flash + immediate sound of what was "captured"
       for (let k=0; k<9; k++) {
         particles.push({x: best.x + (Math.random()-0.5)*18, y:best.y+(Math.random()-0.5)*18, vx:(Math.random()-0.5)*2.2, vy:(Math.random()-0.5)*1.8-0.6, life:14, size:2.8, color: best.species.color});
       }
-      playCall(best.species, 0.95 * currentClip.quality, (best.x - player.x)/580 , 1);
-
-      // show identify UI
-      showIdentifyUI(currentClip);
+      playCall(best.species, 0.95 * clip.quality, (best.x - player.x)/580 , 1);
+      showIdentifyUI(clip);
     }
 
     function showIdentifyUI(clip) {
@@ -911,13 +823,19 @@
       // Lightweight spectrogram visual (fake for education)
       drawSpectrogram(clip);
 
-      species.forEach(sp => {
+      const sorted = species.slice().sort((a, b) => (a.id === clip.dominant.id ? -1 : b.id === clip.dominant.id ? 1 : 0));
+      sorted.forEach(sp => {
         const b = document.createElement('button');
-        b.className = 'species-btn px-3 py-2 text-xs rounded-2xl border border-white/10 bg-zinc-950 hover:border-emerald-400/60 text-left';
+        const isMatch = sp.id === clip.dominant.id && clip.quality >= 0.52;
+        b.className = 'species-btn px-3 py-2 text-xs rounded-2xl border bg-zinc-950 hover:border-emerald-400/60 text-left ' +
+          (isMatch ? 'border-emerald-400/70 ring-1 ring-emerald-400/40' : 'border-white/10');
         b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span><div class="text-[10px] text-white/50">${sp.fact}</div>`;
         b.onclick = () => submitIdentification(sp.id);
         opts.appendChild(b);
       });
+      if (clip.quality < 0.55) {
+        showToast('Tip: hold L, get closer, then record for a clearer spectrogram.', 'info');
+      }
     }
 
     function drawSpectrogram(clip) {
@@ -952,15 +870,9 @@
       if (!clip) { panel.classList.add('hidden'); return; }
 
       const q = clip.quality;
-      const outcome = EchoesCore.applyIdentification({
-        chosenId,
-        dominantId: clip.dominant.id,
-        quality: q,
-        logged,
-        integrity,
-      });
-      logged = outcome.logged;
-      integrity = outcome.integrity;
+      const outcome = session.identify(chosenId);
+      syncFromSession();
+      if (!outcome) { panel.classList.add('hidden'); return; }
       document.getElementById('logged').textContent = logged + '/6';
 
       if (outcome.correct) {
@@ -1188,10 +1100,13 @@
     }
 
     function setup() {
-      initAnimals('forest');
+      session = new EchoesCore.FieldSession({ habitat: 'forest', timeOfDay: 'dawn', speciesList: species });
+      syncFromSession();
+      window.__echoesSession = session;
 
-      // seed some movement + activity
-      player.vx = 0.9; player.vy = 0.3;
+      session.player.vx = 0.9;
+      session.player.vy = 0.3;
+      syncFromSession();
       for (let i=0; i<11; i++) {
         particles.push({
           x: 170 + Math.random()*530, y: 130 + Math.random()*310,
@@ -1210,31 +1125,6 @@
       });
       document.addEventListener('keyup', e => {
         keys[e.key.toLowerCase()] = false;
-        // space release can also trigger break free if charging with keys
-        if (e.key === ' ' && isChargingMove) {
-          // simulate mouse release for dash
-          if (chargeMoveTime > 0.35 && !isDashing) {
-            isDashing = true;
-            dashEndTime = performance.now() + 650;
-            const dir = player.facing;
-            const boost = 6.5 + chargeMoveTime * 9;
-            player.vx = Math.cos(dir) * boost;
-            player.vy = Math.sin(dir) * boost;
-            for (let k = 0; k < 10; k++) {
-              particles.push({
-                x: player.x - Math.cos(dir) * 12,
-                y: player.y - Math.sin(dir) * 12,
-                vx: -Math.cos(dir) * (1.2 + Math.random() * 2),
-                vy: -Math.sin(dir) * (1.2 + Math.random() * 2),
-                life: 15 + Math.random() * 10,
-                size: 1.5 + Math.random(),
-                color: '#8B5A2B'
-              });
-            }
-          }
-          isChargingMove = false;
-          chargeMoveTime = 0;
-        }
       });
 
       // mouse / touch
@@ -1246,8 +1136,10 @@
         mouse.listenDown = true;
         mouse.x = mx; mouse.y = my;
         const dx = mx - player.x, dy = my - player.y;
-        player.vx += dx * 0.025; player.vy += dy * 0.025;
-        player.facing = Math.atan2(dy, dx);
+        session.player.vx += dx * 0.025;
+        session.player.vy += dy * 0.025;
+        session.player.facing = Math.atan2(dy, dx);
+        syncFromSession();
         ensureAudio();
       });
       window.addEventListener('mouseup', () => { mouse.down = false; mouse.listenDown = false; });
@@ -1264,8 +1156,10 @@
         const my = (e.touches[0].clientY - rect.top) / rect.height * canvas.height;
         mouse.listenDown = true;
         const dx = mx - player.x; const dy = my - player.y;
-        player.vx += dx * 0.03; player.vy += dy * 0.03;
-        player.facing = Math.atan2(dy, dx);
+        session.player.vx += dx * 0.03;
+        session.player.vy += dy * 0.03;
+        session.player.facing = Math.atan2(dy, dx);
+        syncFromSession();
         ensureAudio();
       }, {passive: false});
       canvas.addEventListener('touchend', () => { mouse.listenDown = false; });
@@ -1345,11 +1239,7 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      window.getEchoesDebugState = function () {
-        return { facing: player.facing, x: player.x, y: player.y, listenActive, logged };
-      };
-
-      console.log('%c[ECHOES] Playtest v1.3.1 — tick sim, keyboard listen auto-aim, real browser verify.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.4 — FieldSession single source of truth.', 'color:#4ade80');
     }
 
     function updateStats() {

@@ -129,55 +129,6 @@ export function simulateListenFacing(player, animals, timeOfDay, listenActive) {
   };
 }
 
-/** One movement tick toward a chase target (WASD-style closing speed). */
-export function tickPlayerTowardTarget(player, target, skill = 0.85) {
-  if (!target) return { ...player };
-  const dx = target.x - player.x;
-  const dy = target.y - player.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist < 4) return { ...player };
-  const step = Math.min(2.0 + skill * 2.0, dist);
-  return {
-    ...player,
-    x: player.x + (dx / dist) * step,
-    y: player.y + (dy / dist) * step,
-  };
-}
-
-export function chooseActiveTime(animals, preferred) {
-  if (animals.filter((a) => a.activity.includes(preferred)).length >= 3) return preferred;
-  return TIME_ORDER.find((t) => animals.filter((a) => a.activity.includes(t)).length >= 3) || preferred;
-}
-
-const LISTEN_RATE = {
-  naturalist: 0.9,
-  educator: 0.86,
-  gamer: 0.72,
-  general: 0.74,
-};
-
-const TICKS_PER_ATTEMPT = {
-  naturalist: 50,
-  educator: 46,
-  gamer: 40,
-  general: 44,
-};
-
-const MAX_ATTEMPTS_BY_SEGMENT = {
-  naturalist: 11,
-  educator: 12,
-  gamer: 13,
-  general: 15,
-};
-
-export function pickIdentificationChoice({ dominantId, animals, skill, quality, rng = Math.random }) {
-  const pCorrect = Math.min(0.96, skill * (0.38 + quality * 0.58));
-  if (rng() < pCorrect) return dominantId;
-  const alts = animals.filter((a) => a.species.id !== dominantId);
-  if (!alts.length) return dominantId;
-  return alts[Math.floor(rng() * alts.length)].species.id;
-}
-
 export function qualityLabel(quality) {
   if (quality > 0.8) return 'CLEAN';
   if (quality > 0.55) return 'FAIR';
@@ -257,169 +208,6 @@ export function initAnimals(habitat = 'forest') {
       activity: sp.activity,
     };
   });
-}
-
-/**
- * Tick-based field session: bob wander, listen facing, optional dash scare,
- * variable clip quality, probabilistic ID card picks, extra attempts on misses.
- */
-export function runPlayerSession({
-  segment,
-  persona,
-  habitat = 'forest',
-  timeOfDay = 'dawn',
-  skill = 0.85,
-  usesMobileHud = false,
-  features = {},
-  rng = Math.random,
-}) {
-  let animals = initAnimals(habitat).map((a, i) => ({ ...a, bobPhase: i * 0.6 }));
-  const friction = [];
-  const delights = [];
-  let logged = 0;
-  let integrity = 100;
-  let habitatsDone = [];
-  const journal = [];
-
-  if (features.onboardingSteps >= 3) delights.push('onboarding_tour_cleared');
-  if (features.mobileHud) delights.push('mobile_hud_available');
-  if (features.nearestCallerHint) delights.push('nearest_caller_compass');
-  if (features.audioGate) delights.push('audio_unlock_gate');
-
-  const tod = chooseActiveTime(animals, timeOfDay);
-  let player = { x: 440, y: 310, facing: 0, listenActive: false };
-  let firstRecQuality = null;
-  let listenTicksTotal = 0;
-  let anyListen = false;
-  let attempts = 0;
-  const maxAttempts = MAX_ATTEMPTS_BY_SEGMENT[segment] + (usesMobileHud ? 2 : 0) + Math.floor(skill * 2);
-  const ticksPerAttempt = TICKS_PER_ATTEMPT[segment];
-
-  while (logged < 6 && attempts < maxAttempts) {
-    attempts++;
-    let listenTicksAttempt = 0;
-    let dashedAttempt = false;
-    let chase = nearestActiveCaller(player, animals, tod).animal;
-
-    for (let tick = 0; tick < ticksPerAttempt; tick++) {
-      animals = tickAnimals(animals);
-      chase = nearestActiveCaller(player, animals, tod).animal || chase;
-
-      const listenBase = LISTEN_RATE[segment] * skill + (usesMobileHud ? 0.14 : 0) + (features.nearestCallerHint ? 0.06 : 0);
-      const impatientRecord = segment === 'general' && tick > ticksPerAttempt - 6 && rng() < 0.28;
-      player.listenActive = !impatientRecord && rng() < listenBase;
-      if (player.listenActive) {
-        listenTicksAttempt++;
-        listenTicksTotal++;
-        anyListen = true;
-      }
-
-      player = tickPlayerTowardTarget(player, chase, skill);
-      player = simulateListenFacing(player, animals, tod, player.listenActive);
-
-      if (segment === 'gamer' && !dashedAttempt && tick === Math.floor(ticksPerAttempt * 0.5) && rng() < 0.24) {
-        dashedAttempt = true;
-        const boost = 6 + skill * 4;
-        player.x += Math.cos(player.facing || 0) * boost;
-        player.y += Math.sin(player.facing || 0) * boost;
-        animals = applyDashScare(player, animals);
-        friction.push('dash_scared_caller');
-        chase = nearestActiveCaller(player, animals, tod).animal || chase;
-      }
-    }
-
-    if (listenTicksAttempt < 10) {
-      friction.push(attempts === 1 ? 'noisy_first_recording' : 'recorded_without_listen');
-      player.listenActive = false;
-    }
-
-    const clip = selectRecordingTarget(player, animals, tod);
-    const dominant = clip.dominant || clip.best;
-    const listenFrac = listenTicksAttempt / ticksPerAttempt;
-    let effectiveQuality = clip.quality * (0.48 + Math.min(1, listenFrac * 1.15) * 0.52);
-    if (dashedAttempt) effectiveQuality *= 0.86;
-    const distToDominant = Math.hypot(dominant.x - player.x, dominant.y - player.y);
-    if (distToDominant > 90) effectiveQuality *= 0.78;
-    effectiveQuality = Math.max(0.35, Math.min(1, effectiveQuality));
-
-    if (firstRecQuality === null) firstRecQuality = effectiveQuality;
-
-    if (effectiveQuality <= 0.55) friction.push('noisy_recording');
-    if (attempts === 1 && effectiveQuality > 0.62 && listenTicksAttempt >= 10) delights.push('cone_aha_moment');
-
-    const chosenId = pickIdentificationChoice({
-      dominantId: dominant.species.id,
-      animals,
-      skill,
-      quality: effectiveQuality,
-      rng,
-    });
-    const outcome = applyIdentification({
-      chosenId,
-      dominantId: dominant.species.id,
-      quality: effectiveQuality,
-      logged,
-      integrity,
-    });
-    logged = outcome.logged;
-    integrity = outcome.integrity;
-    journal.push({
-      species: dominant.species.id,
-      correct: outcome.correct,
-      quality: effectiveQuality,
-      rawQuality: clip.quality,
-      attempt: attempts,
-    });
-
-    if (outcome.correct && features.integrityToasts && logged === 1) delights.push('first_species_logged');
-    if (!outcome.correct) {
-      if (!features.integrityToasts) friction.push('opaque_integrity_penalty');
-      friction.push('id_card_miss');
-    }
-  }
-
-  const completed = shouldCompleteExpedition(logged);
-  if (completed) {
-    habitatsDone = markHabitatDone(habitatsDone, habitat);
-    delights.push('expedition_complete_celebration');
-    if (features.habitatCtas) delights.push('habitat_switch_cta');
-    if (features.learnSummary) delights.push('what_you_learned_summary');
-    if (features.shareReport) delights.push('field_report_share');
-    if (features.feedbackCta) delights.push('feedback_button_ready');
-  } else {
-    friction.push('habitat_incomplete');
-  }
-
-  if (usesMobileHud && features.mobileHud) delights.push('mobile_listen_record_used');
-
-  const scores = scoreSessionRubric({
-    segment,
-    persona,
-    completed,
-    integrity,
-    friction,
-    delights,
-    features,
-    journal,
-    recQuality: firstRecQuality ?? 0.5,
-    listenActive: anyListen,
-  });
-
-  return {
-    segment,
-    persona,
-    habitat,
-    logged,
-    integrity,
-    completed,
-    habitatsDone,
-    friction,
-    delights,
-    journal,
-    attempts,
-    listenTicksTotal,
-    scores,
-  };
 }
 
 export function scoreSessionRubric({
@@ -504,6 +292,14 @@ export function scoreSessionRubric({
 
   const correctCount = journal.filter((j) => j.correct).length;
   if (correctCount >= 5) fun += 0.25;
+  if (!completed && correctCount >= 5) {
+    fun += 0.35;
+    wouldRecommend += 0.25;
+    clarity += 0.15;
+  }
+  if (!completed && correctCount >= 4) {
+    wouldRecommend += 0.1;
+  }
 
   for (const f of friction) {
     if (f === 'habitat_incomplete') {
@@ -541,6 +337,16 @@ export function scoreSessionRubric({
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
+
+export {
+  FieldSession,
+  RECORD_BUDGET,
+  SEGMENT_SCRIPTS,
+  buildSimKeys,
+  pickSimIdentification,
+} from './field-session.mjs';
+
+export { driveFieldSession } from './sim-drive.mjs';
 
 export function readShippedFeaturesFromHtml(html) {
   return {
