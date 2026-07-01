@@ -16,6 +16,7 @@ import {
   clipQualityFromScore,
   selectRecordingTarget,
   facingBonusFromDiff,
+  computeCallWarmth,
   nearestActiveCaller,
   tickAnimals,
   applyDashScare,
@@ -76,6 +77,7 @@ const body = `/* eslint-disable */
   ${fnSource(clipQualityFromScore)}
   ${fnSource(selectRecordingTarget)}
   ${fnSource(facingBonusFromDiff)}
+  ${fnSource(computeCallWarmth)}
   ${fnSource(nearestActiveCaller)}
   ${fnSource(tickAnimals)}
   ${fnSource(applyDashScare)}
@@ -106,6 +108,7 @@ const body = `/* eslint-disable */
     clipQualityFromScore: clipQualityFromScore,
     selectRecordingTarget: selectRecordingTarget,
     facingBonusFromDiff: facingBonusFromDiff,
+    computeCallWarmth: computeCallWarmth,
     nearestActiveCaller: nearestActiveCaller,
     tickAnimals: tickAnimals,
     applyDashScare: applyDashScare,

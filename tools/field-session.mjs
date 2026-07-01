@@ -24,9 +24,10 @@ export const SEGMENT_SCRIPTS = {
 };
 
 export class FieldSession {
-  constructor({ habitat = 'forest', timeOfDay = 'dawn', speciesList = SPECIES, rng = Math.random } = {}) {
+  constructor({ habitat = 'forest', timeOfDay = 'dawn', speciesList = SPECIES, rng = Math.random, dashEnabled = false } = {}) {
     this.rng = rng;
     this.speciesList = speciesList;
+    this.dashEnabled = dashEnabled;
     const baseAnimals = initAnimals(habitat);
     let tod = timeOfDay;
     if (baseAnimals.filter((a) => a.activity.includes(tod)).length < 3) {
@@ -73,30 +74,36 @@ export class FieldSession {
     if (keys.a || keys.arrowleft) ax -= 1;
     if (keys.d || keys.arrowright) ax += 1;
 
-    if (mouse.down && !this._wasMouseDown && !this._isDashing) {
-      this._isChargingMove = true;
-      this._chargeMoveTime = 0;
-    }
-
-    const spaceHeld = !!keys[' '];
-    const moveKeysHeld = ax || ay || keys.w || keys.s || keys.a || keys.d;
-
-    if ((mouse.down || (moveKeysHeld && spaceHeld)) && !this._isDashing) {
-      this._isChargingMove = true;
-      this._chargeMoveTime += dt * 0.04;
-      this.player.vx *= 0.65;
-      this.player.vy *= 0.65;
-    } else if (this._isChargingMove && !mouse.down && !spaceHeld && (this._wasMouseDown || moveKeysHeld)) {
-      if (this._chargeMoveTime > 0.35) {
-        this._isDashing = true;
-        this._dashEndTime = this._now + 650;
-        const dir = this.player.facing || Math.atan2(ay || 0, ax || 1);
-        const boost = 6.5 + this._chargeMoveTime * 9;
-        this.player.vx = Math.cos(dir) * boost;
-        this.player.vy = Math.sin(dir) * boost;
+    if (this.dashEnabled) {
+      if (mouse.down && !this._wasMouseDown && !this._isDashing) {
+        this._isChargingMove = true;
+        this._chargeMoveTime = 0;
       }
+
+      const spaceHeld = !!keys[' '];
+      const moveKeysHeld = ax || ay || keys.w || keys.s || keys.a || keys.d;
+
+      if ((mouse.down || (moveKeysHeld && spaceHeld)) && !this._isDashing) {
+        this._isChargingMove = true;
+        this._chargeMoveTime += dt * 0.04;
+        this.player.vx *= 0.65;
+        this.player.vy *= 0.65;
+      } else if (this._isChargingMove && !mouse.down && !spaceHeld && (this._wasMouseDown || moveKeysHeld)) {
+        if (this._chargeMoveTime > 0.35) {
+          this._isDashing = true;
+          this._dashEndTime = this._now + 650;
+          const dir = this.player.facing || Math.atan2(ay || 0, ax || 1);
+          const boost = 6.5 + this._chargeMoveTime * 9;
+          this.player.vx = Math.cos(dir) * boost;
+          this.player.vy = Math.sin(dir) * boost;
+        }
+        this._isChargingMove = false;
+        this._chargeMoveTime = 0;
+      }
+    } else {
       this._isChargingMove = false;
       this._chargeMoveTime = 0;
+      this._isDashing = false;
     }
 
     if (ax || ay) {
@@ -112,9 +119,9 @@ export class FieldSession {
     this.player.x = Math.max(55, Math.min(825, this.player.x));
     this.player.y = Math.max(75, Math.min(545, this.player.y));
 
-    if (this._isDashing && this._now > this._dashEndTime) this._isDashing = false;
+    if (this.dashEnabled && this._isDashing && this._now > this._dashEndTime) this._isDashing = false;
 
-    if (this._isDashing) {
+    if (this.dashEnabled && this._isDashing) {
       const dashX = this.player.x;
       const dashY = this.player.y;
       for (const a of this.animals) {
@@ -154,8 +161,9 @@ export class FieldSession {
     return this.getState();
   }
 
-  /** Scripted dash for sim (gamer segment). */
+  /** Scripted dash for sim (gamer segment) — no-op when dash disabled. */
   triggerDash() {
+    if (!this.dashEnabled) return this.getState();
     const dir = this.player.facing || 0;
     const boost = 8;
     this.player.vx = Math.cos(dir) * boost;

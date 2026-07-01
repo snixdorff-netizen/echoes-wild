@@ -28,10 +28,22 @@ export function driveCriticalSession({
   recordBudget = RECORD_BUDGET,
 }) {
   const script = { ...NOVICE_SCRIPTS[segment], skill };
-  if (features.guidedCoach) script.listenRate *= 1.22;
+  if (features.dashDisabled) script.dashChance = 0;
+  if (features.interactiveTutorial) {
+    script.listenRate *= 1.35;
+    script.skipOnboarding = 0;
+  } else if (features.guidedCoach) {
+    script.listenRate *= 1.22;
+  }
   if (features.controlDock) script.listenRate *= 1.08;
   if (features.canvasCompass) script.idSkill *= 1.06;
-  const session = new FieldSession({ habitat, timeOfDay, rng });
+  if (features.stereoWarmthAudio) script.listenRate *= 1.06;
+  const session = new FieldSession({
+    habitat,
+    timeOfDay,
+    rng,
+    dashEnabled: !features.dashDisabled && segment === 'gamer',
+  });
   const friction = [];
   const delights = [];
   const confusion = [];
@@ -44,9 +56,11 @@ export function driveCriticalSession({
     delights.push('onboarding_tour_cleared');
   }
 
-  if (!features.controlDock && !features.mobileHud) friction.push('controls_overwhelming');
+  if (!features.controlDock && !features.mobileHud && !features.progressiveDisclosure) {
+    friction.push('controls_overwhelming');
+  }
   if (!features.missionBar) confusion.push('unclear_goal');
-  if (!features.guidedCoach) friction.push('skipped_guided_coach');
+  if (!features.interactiveTutorial && !features.guidedCoach) friction.push('skipped_guided_coach');
   if (!features.canvasCompass) confusion.push('cant_find_animals');
   if (!features.enhancedGraphics) friction.push('poor_visual_fidelity');
 
@@ -121,7 +135,13 @@ export function driveCriticalSession({
     confusion.push('quit_before_payoff');
   }
 
-  if (features.guidedCoach && !skippedOnboarding && totalListenTicks >= 40) delights.push('guided_coach_complete');
+  if (features.interactiveTutorial && !skippedOnboarding && totalListenTicks >= 40) {
+    delights.push('interactive_tutorial_complete');
+  } else if (features.guidedCoach && !skippedOnboarding && totalListenTicks >= 40) {
+    delights.push('guided_coach_complete');
+  }
+  if (features.stereoWarmthAudio && totalListenTicks >= 30) delights.push('stereo_warmth_aha');
+  if (features.progressiveDisclosure) delights.push('progressive_ui_unlock');
   if (features.canvasCompass && totalListenTicks >= 30) delights.push('canvas_compass_used');
   if (features.missionBar && completed) delights.push('mission_bar_clarity');
 

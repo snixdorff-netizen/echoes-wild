@@ -44,7 +44,27 @@ export function clipQualityFromScore(bestScore) {
 export const FACING_BONUS_THRESHOLD = 1.2;
 
 export function facingBonusFromDiff(adiff, listenActive) {
-  return listenActive && adiff < FACING_BONUS_THRESHOLD ? 1.65 : 1.0;
+  if (!listenActive) return Math.max(0.35, 1 - adiff / Math.PI) * 0.9;
+  const align = Math.max(0, 1 - adiff / (Math.PI * 0.42));
+  return 0.55 + align * 2.0;
+}
+
+/** Stereo volume/pan + warmth score for proximity audio cues ("getting warmer"). */
+export function computeCallWarmth(player, animal) {
+  const dx = animal.x - player.x;
+  const dy = animal.y - player.y;
+  const dist = Math.hypot(dx, dy);
+  const dirTo = Math.atan2(dy, dx);
+  const adiff = angleDiff(dirTo, player.facing || 0);
+  const facingAlign = Math.max(0, 1 - adiff / (Math.PI * 0.5));
+  const prox = Math.max(0.08, 1 - dist / 500);
+  const listenActive = !!player.listenActive;
+  const warmth = listenActive
+    ? Math.min(1, 0.2 + prox * 0.45 + facingAlign * 0.5)
+    : prox * 0.55;
+  const vol = Math.min(1.35, warmth * (listenActive ? 1.55 : 0.8));
+  const pan = Math.max(-1, Math.min(1, (dx / 380) * (0.55 + facingAlign * 0.55)));
+  return { vol, pan, warmth, dist, facingAlign };
 }
 
 export function selectRecordingTarget(player, animals, timeOfDay) {
@@ -399,10 +419,17 @@ export function scoreSessionRubric({
     if (f === 'recorded_before_listening') clarity -= 0.35;
   }
 
-  if (delights.includes('guided_coach_complete')) {
+  if (delights.includes('guided_coach_complete') || delights.includes('interactive_tutorial_complete')) {
     clarity += 0.55;
     fun += 0.35;
     wouldRecommend += 0.2;
+  }
+  if (delights.includes('stereo_warmth_aha')) {
+    clarity += 0.25;
+    fun += 0.15;
+  }
+  if (delights.includes('progressive_ui_unlock')) {
+    clarity += 0.2;
   }
   if (delights.includes('canvas_compass_used')) {
     clarity += 0.4;
@@ -456,6 +483,10 @@ export function readShippedFeaturesFromHtml(html) {
     controlDock: html.includes('id="control-dock"'),
     missionBar: html.includes('id="mission-bar"'),
     guidedCoach: html.includes('id="guided-coach"'),
+    interactiveTutorial: html.includes('id="interactive-tutorial"') && html.includes('echoes-tutorial-v2'),
+    dashDisabled: html.includes('dashEnabled: false') || html.includes('DASH_ENABLED_EXPEDITION'),
+    progressiveDisclosure: html.includes('id="advanced-bar"'),
+    stereoWarmthAudio: html.includes('computeCallWarmth'),
     canvasCompass: html.includes('drawCanvasCompass'),
     enhancedGraphics: html.includes('drawEnhancedHabitat'),
   };

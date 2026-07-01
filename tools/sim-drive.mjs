@@ -22,7 +22,13 @@ export function driveFieldSession({
   recordBudget = RECORD_BUDGET,
 }) {
   const script = { ...SEGMENT_SCRIPTS[segment], skill };
-  const session = new FieldSession({ habitat, timeOfDay, rng });
+  if (features.dashDisabled) script.dashChance = 0;
+  const session = new FieldSession({
+    habitat,
+    timeOfDay,
+    rng,
+    dashEnabled: !features.dashDisabled && segment === 'gamer',
+  });
   const friction = [];
   const delights = [];
 
@@ -51,7 +57,7 @@ export function driveFieldSession({
       if (keys.l) ticksBeforeRecord++;
     }
 
-    if (segment === 'gamer' && !dashed && rng() < script.dashChance) {
+    if (!features.dashDisabled && segment === 'gamer' && !dashed && rng() < script.dashChance) {
       dashed = true;
       session.triggerDash();
       friction.push('dash_scared_caller');

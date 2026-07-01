@@ -13,6 +13,7 @@ import {
   markHabitatDone,
   personaHint,
   initAnimals,
+  computeCallWarmth,
 } from '../tools/echoes-core.mjs';
 
 describe('recording quality scoring', () => {
@@ -113,6 +114,17 @@ describe('quality labels', () => {
     assert.equal(qualityLabel(0.9), 'CLEAN');
     assert.equal(qualityLabel(0.6), 'FAIR');
     assert.equal(qualityLabel(0.4), 'NOISY');
+  });
+});
+
+describe('computeCallWarmth', () => {
+  it('returns higher warmth when listening and facing caller', () => {
+    const animal = { x: 200, y: 300 };
+    const facing = Math.atan2(15, 30);
+    const warm = computeCallWarmth({ x: 170, y: 285, facing, listenActive: true }, animal);
+    const cold = computeCallWarmth({ x: 500, y: 500, facing: 0, listenActive: false }, animal);
+    assert.ok(warm.warmth > cold.warmth);
+    assert.ok(warm.vol > cold.vol);
   });
 });
 

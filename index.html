@@ -32,7 +32,17 @@
     #guided-coach .coach-body { font-size: 12px; color: rgba(226,232,240,.85); line-height: 1.45; }
     #guided-coach .coach-progress { margin-top: 8px; height: 4px; border-radius: 4px; background: rgba(0,0,0,.3); overflow: hidden; }
     #guided-coach .coach-progress > div { height: 100%; background: linear-gradient(90deg, #34d399, #10b981); transition: width .3s; }
-    @media (max-width: 768px) { body { padding: 12px; } .desktop-hint { display: none; } h1 { font-size: 2rem !important; } #guided-coach { top: 56px; } }
+    #advanced-bar.hidden-advanced { display: none !important; }
+    #interactive-tutorial { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 57; max-width: 420px; width: calc(100% - 24px); padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, rgba(6,78,59,.98), rgba(15,35,28,.99)); border: 2px solid rgba(74,222,128,.55); box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+    #interactive-tutorial.hidden { display: none !important; }
+    #interactive-tutorial .tutorial-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #6ee7b7; }
+    #interactive-tutorial .tutorial-body { font-size: 12px; color: rgba(226,232,240,.9); line-height: 1.45; }
+    #interactive-tutorial .tutorial-progress { margin-top: 8px; height: 4px; border-radius: 4px; background: rgba(0,0,0,.3); overflow: hidden; }
+    #interactive-tutorial .tutorial-progress > div { height: 100%; background: linear-gradient(90deg, #34d399, #10b981); transition: width .3s; }
+    .tutorial-pulse { animation: tutorial-pulse 1.1s ease-in-out infinite; outline: 3px solid rgba(74,222,128,.75); outline-offset: 3px; }
+    @keyframes tutorial-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,.45); } 50% { box-shadow: 0 0 0 10px rgba(52,211,153,0); } }
+    #warmth-badge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; background: rgba(6,78,59,.5); color: #6ee7b7; border: 1px solid rgba(74,222,128,.25); }
+    @media (max-width: 768px) { body { padding: 12px; } .desktop-hint { display: none; } h1 { font-size: 2rem !important; } #guided-coach, #interactive-tutorial { top: 56px; } }
     #onboard { position: fixed; inset: 0; background: rgba(0,0,0,.78); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; }
     #audio-gate { z-index: 54; }
     #onboard .card { background: #0f231c; border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 420px; width: 100%; padding: 20px; }
@@ -42,7 +52,7 @@
   <div class="flex justify-between items-end mb-3">
     <div>
       <h1 class="text-5xl font-semibold tracking-tighter" id="title">Old Growth Forest</h1>
-      <p class="text-emerald-400/70 text-sm">Click canvas or WASD • Hold L (or mouse button) to listen • R or button to record • T or button advances time of day</p>
+      <p class="text-emerald-400/70 text-sm">Click canvas or WASD to move • Hold 🎧 Listen (L) to aim • Record while listening • Use the dock below</p>
     </div>
     <div class="text-right text-sm">
       <div>Species Logged: <span id="logged" class="font-mono text-emerald-400">0/6</span></div>
@@ -59,19 +69,21 @@
       <button onclick="switchHabitat('marsh')" class="px-3.5 py-1 bg-white/5 hover:bg-white/10" id="tab-marsh">Marsh</button>
       <button onclick="switchHabitat('canyon')" class="px-3.5 py-1 bg-white/5 hover:bg-white/10" id="tab-canyon">Canyon</button>
     </div>
-    <button onclick="advanceTime()" class="px-3 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5"><i class="fa fa-clock mr-1"></i> <span>Advance Time</span></button>
-    <button onclick="recordClip()" class="px-3 py-1 text-xs font-medium rounded-2xl bg-red-600 hover:bg-red-500 flex items-center gap-1.5"><i class="fa fa-microphone mr-1"></i> <span>RECORD CLIP</span></button>
-    <button onclick="toggleMute()" id="mute-btn" class="px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-volume-up" id="mute-icon"></i></button>
-    <button onclick="shareFieldReport()" id="share-btn" class="hidden px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-share-alt"></i> Report</button>
-    <button onclick="copyPlaytestFeedback()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Feedback</button>
+    <div id="advanced-bar" class="hidden-advanced flex flex-wrap items-center gap-2">
+      <button onclick="advanceTime()" class="px-3 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5"><i class="fa fa-clock mr-1"></i> <span>Advance Time</span></button>
+      <button onclick="recordClip()" class="px-3 py-1 text-xs font-medium rounded-2xl bg-red-600 hover:bg-red-500 flex items-center gap-1.5"><i class="fa fa-microphone mr-1"></i> <span>RECORD CLIP</span></button>
+      <button onclick="toggleMute()" id="mute-btn" class="px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-volume-up" id="mute-icon"></i></button>
+      <button onclick="shareFieldReport()" id="share-btn" class="hidden px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-share-alt"></i> Report</button>
+      <button onclick="copyPlaytestFeedback()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Feedback</button>
+      <select id="persona" onchange="setPersona(this.value)" class="px-2 py-0.5 text-[10px] rounded bg-white/5 border border-white/10 text-emerald-200/80" title="Playtest persona">
+        <option value="liam">Persona: Casual</option>
+        <option value="aisha">Persona: Educator</option>
+        <option value="marcus">Persona: Citizen scientist</option>
+        <option value="elena">Persona: Pro biologist</option>
+      </select>
+    </div>
     <button onclick="showHelp()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Help</button>
-    <select id="persona" onchange="setPersona(this.value)" class="px-2 py-0.5 text-[10px] rounded bg-white/5 border border-white/10 text-emerald-200/80" title="Playtest persona">
-      <option value="liam">Persona: Casual</option>
-      <option value="aisha">Persona: Educator</option>
-      <option value="marcus">Persona: Citizen scientist</option>
-      <option value="elena">Persona: Pro biologist</option>
-    </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v1.5 — use the dock below: Listen → Record → Identify. Coach guides your first clip.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v1.6 — dock guides your first clip. Advanced controls unlock after your first log.</span>
   </div>
 
   <div id="mission-bar" aria-label="Expedition steps">
@@ -84,10 +96,10 @@
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
 
-  <div id="guided-coach" class="hidden" role="dialog" aria-live="polite">
-    <div class="coach-title" id="coach-title">Field Coach</div>
-    <div class="coach-body" id="coach-body">Loading expedition briefing…</div>
-    <div class="coach-progress"><div id="coach-progress-fill" style="width:0%"></div></div>
+  <div id="interactive-tutorial" class="hidden" role="dialog" aria-live="assertive">
+    <div class="tutorial-title" id="tutorial-title">Your first clip</div>
+    <div class="tutorial-body" id="tutorial-body">Follow each step — no skip on your first expedition.</div>
+    <div class="tutorial-progress"><div id="tutorial-progress-fill" style="width:0%"></div></div>
   </div>
 
   <div id="control-dock" aria-label="Primary controls">
@@ -101,7 +113,7 @@
   </div>
   <div id="nearest-hint" class="text-center text-[11px] text-emerald-300/60 mt-1 min-h-[16px]"></div>
 
-  <div class="mt-3 text-center text-xs text-emerald-300/50">Animals call on their own. Hold L (or mouse) for the directional cone. <strong>Hold mouse button to grip/charge — release to break free and shoot forward.</strong> Get close, record (R or button), identify to log + raise integrity.</div>
+  <div class="mt-3 text-center text-xs text-emerald-300/50">Animals call on their own. Hold Listen for the green cone — calls get louder in stereo when you face them. Get close, record, identify to log + raise integrity.</div>
 
   <!-- Identify UI -->
   <div id="identify-panel" class="mt-4 hidden p-4 rounded-2xl bg-zinc-900 border border-white/10">
@@ -130,8 +142,7 @@
         <p><strong>Goal:</strong> Explore habitats, listen, record clean calls, and identify species to log them and protect acoustic integrity.</p>
         <ul class="list-disc pl-4 text-xs">
           <li>WASD or click to move the hiker</li>
-          <li><strong>Hold mouse to grip/charge (fingers hold on)</strong> — release to break free and shoot forward with particles</li>
-          <li>Hold <span class="font-mono">L</span> or mouse for directional mic cone (green wedge)</li>
+          <li>Hold <span class="font-mono">L</span> or 🎧 Listen for directional mic cone (green wedge) — stereo pan shows direction</li>
           <li>Animals call louder and more often when you're close and facing them</li>
           <li>Press <span class="font-mono">R</span> or use RECORD CLIP while listening</li>
           <li>Choose the correct species in the identify cards (with spectrogram visual)</li>
@@ -139,7 +150,7 @@
           <li>Complete 6/6 in a habitat for a special Field Report you can share</li>
         </ul>
         <p class="text-[10px]">For this playtest: Try to complete at least one full habitat. Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.3.1 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.6 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
       </div>
     </div>
   </div>
@@ -150,7 +161,7 @@
       <div class="font-semibold text-lg mb-2" id="onboard-title">Listen like a field biologist</div>
       <p class="text-sm text-emerald-300/80 mb-4" id="onboard-body">Move with WASD or tap the canvas. Hold Listen (L or the green cone) to aim your mic — animals get louder when you face them.</p>
       <div class="flex justify-between items-center">
-        <button onclick="skipOnboarding()" class="text-xs text-white/40 hover:text-white/70">Skip tour</button>
+        <button onclick="skipOnboarding()" id="onboard-skip" class="text-xs text-white/40 hover:text-white/70 hidden">Skip tour</button>
         <button onclick="advanceOnboarding()" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-medium rounded-2xl" id="onboard-next">Next</button>
       </div>
     </div>
@@ -159,7 +170,10 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.5-jul2026';
+    const BUILD_VERSION = 'playtest-v1.6-jul2026';
+    const DASH_ENABLED_EXPEDITION = 2;
+    const TUTORIAL_STORAGE_KEY = 'echoes-tutorial-v2';
+    const LISTEN_HOLD_TICKS = 50;
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -238,8 +252,26 @@
       const gate = document.getElementById('audio-gate');
       if (gate) gate.classList.add('hidden');
       showToast('Soundscape unlocked — hold 🎧 Listen and follow the compass!', 'good');
-      advanceCoach('audio');
-      startGuidedCoach();
+      startInteractiveTutorial();
+    }
+
+    function getExpeditionLevel() {
+      try {
+        const done = getHabitatsDone().length;
+        const lvl = parseInt(localStorage.getItem('echoes-expedition-level') || '1', 10);
+        return Math.max(lvl, done + 1);
+      } catch (e) { return 1; }
+    }
+
+    function isDashEnabled() {
+      return getExpeditionLevel() >= DASH_ENABLED_EXPEDITION;
+    }
+
+    function updateProgressiveDisclosure() {
+      const bar = document.getElementById('advanced-bar');
+      if (!bar) return;
+      const show = logged >= 1 || getHabitatsDone().length >= 1 || localStorage.getItem(TUTORIAL_STORAGE_KEY) === '1';
+      bar.classList.toggle('hidden-advanced', !show);
     }
 
     function syncFromSession() {
@@ -266,9 +298,14 @@
         gameState.timeOfDay
       );
       if (nearest.animal) {
-        el.textContent = `📡 Nearest caller: ${nearest.animal.species.name} (${Math.round(nearest.distance)}m) — calling now`;
+        const warmth = EchoesCore.computeCallWarmth(
+          { x: player.x, y: player.y, facing: player.facing, listenActive },
+          nearest.animal
+        );
+        const warmthLabel = warmth.warmth >= 0.72 ? ' — getting warmer!' : (warmth.warmth >= 0.45 ? ' — keep listening' : '');
+        el.innerHTML = `📡 Nearest caller: ${nearest.animal.species.name} (${Math.round(nearest.distance)}m)${warmthLabel}<span id="warmth-badge">${listenActive ? Math.round(warmth.warmth * 100) + '% signal' : ''}</span>`;
       } else {
-        el.textContent = 'No active callers — advance time (T) or switch habitat';
+        el.textContent = 'No active callers — use ⏱ Time in the dock when you unlock advanced controls';
       }
     }
 
@@ -296,17 +333,15 @@
       { title: 'Complete + share', body: 'Log 6/6 species, copy your Field Report, try Marsh or Canyon. The compass arrow on the map points to the nearest active caller.' }
     ];
 
-    const COACH_STEPS = [
-      { title: 'Enter the soundscape', body: 'Tap "Enable sound" when prompted. Animals only call at certain times — use ⏱ Time if it\'s quiet.', progress: 10 },
-      { title: 'Hold Listen', body: 'Press and hold 🎧 Listen (or L). Watch the green cone — follow the compass arrow to the glowing caller.', progress: 30, needsListen: true },
-      { title: 'Record the call', body: 'While listening, tap ⏺ Record. Get close and face the animal for a CLEAN clip.', progress: 55, needsRecord: true },
-      { title: 'Identify the species', body: 'Tap the species card that matches the call. ★ Most likely appears on fair+ recordings.', progress: 80, needsIdentify: true },
-      { title: 'Keep exploring', body: 'Repeat until 6/6 logged. Mission bar tracks your loop. Need help? Tap Help anytime.', progress: 100 },
+    const TUTORIAL_STEPS = [
+      { title: 'Step 1: Hold Listen', body: 'Press and hold 🎧 Listen for 2 seconds. Follow the compass arrow — calls get louder when you face the caller.', target: 'btn-listen', progress: 25 },
+      { title: 'Step 2: Record the call', body: 'While listening, tap ⏺ Record. Get close and face the animal for a CLEAN clip.', target: 'btn-record', progress: 50 },
+      { title: 'Step 3: Identify', body: 'Tap the species card marked ★ Most likely.', target: 'identify-panel', progress: 85 },
+      { title: 'First clip complete!', body: 'You learned the core loop. Log 6 species to publish your Field Report.', progress: 100 },
     ];
-    let coachIndex = 0;
-    let coachListenTicks = 0;
-    let coachActive = false;
-    let coachCompleted = false;
+    let tutorialStep = 0;
+    let tutorialListenTicks = 0;
+    let tutorialActive = false;
 
     function updateMissionBar(phase) {
       const steps = document.querySelectorAll('#mission-bar .step');
@@ -320,43 +355,79 @@
       if (phase === 'report' && logged >= 6) steps.forEach(el => el.classList.add('done'));
     }
 
-    function renderCoach() {
-      const panel = document.getElementById('guided-coach');
-      if (!panel || !coachActive) return;
-      const step = COACH_STEPS[coachIndex] || COACH_STEPS[COACH_STEPS.length - 1];
-      document.getElementById('coach-title').textContent = step.title;
-      document.getElementById('coach-body').textContent = step.body;
-      document.getElementById('coach-progress-fill').style.width = step.progress + '%';
-      panel.classList.remove('hidden');
+    function clearTutorialPulse() {
+      document.querySelectorAll('.tutorial-pulse').forEach((el) => el.classList.remove('tutorial-pulse'));
     }
 
-    function startGuidedCoach() {
+    function renderTutorial() {
+      const panel = document.getElementById('interactive-tutorial');
+      if (!panel || !tutorialActive) return;
+      const step = TUTORIAL_STEPS[tutorialStep] || TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1];
+      document.getElementById('tutorial-title').textContent = step.title;
+      document.getElementById('tutorial-body').textContent = step.body;
+      document.getElementById('tutorial-progress-fill').style.width = step.progress + '%';
+      panel.classList.remove('hidden');
+      clearTutorialPulse();
+      if (step.target) {
+        const el = document.getElementById(step.target);
+        if (el) el.classList.add('tutorial-pulse');
+      }
+      setRecordDockEnabled(tutorialStep >= 1 && tutorialListenTicks >= LISTEN_HOLD_TICKS);
+    }
+
+    function startInteractiveTutorial() {
       try {
-        if (localStorage.getItem('echoes-coach-v1') === '1') return;
+        if (localStorage.getItem(TUTORIAL_STORAGE_KEY) === '1') return;
       } catch (e) {}
-      coachActive = true;
-      coachIndex = 0;
-      renderCoach();
+      tutorialActive = true;
+      tutorialStep = 0;
+      tutorialListenTicks = 0;
+      setRecordDockEnabled(false);
+      renderTutorial();
       updateMissionBar('explore');
     }
 
-    function advanceCoach(check) {
-      if (!coachActive || coachCompleted) return;
-      const step = COACH_STEPS[coachIndex];
-      if (!step) return;
-      if (check === 'audio' && coachIndex === 0) { coachIndex = 1; renderCoach(); updateMissionBar('listen'); }
-      if (check === 'listen' && coachIndex === 1 && coachListenTicks >= 25) { coachIndex = 2; renderCoach(); }
-      if (check === 'record' && coachIndex === 2) { coachIndex = 3; renderCoach(); updateMissionBar('identify'); }
-      if (check === 'identify' && coachIndex === 3) {
-        coachIndex = 4;
-        coachCompleted = true;
-        renderCoach();
-        try { localStorage.setItem('echoes-coach-v1', '1'); } catch (e) {}
+    function showTutorialConfetti() {
+      for (let i = 0; i < 28; i++) {
         setTimeout(() => {
-          const panel = document.getElementById('guided-coach');
+          particles.push({
+            x: player.x + (Math.random() - 0.5) * 120,
+            y: player.y + (Math.random() - 0.5) * 80,
+            vx: (Math.random() - 0.5) * 2.4,
+            vy: (Math.random() - 0.5) * 1.6 - 0.9,
+            life: 32 + Math.random() * 18,
+            size: 2.2 + Math.random() * 1.4,
+            color: '#4ade80'
+          });
+        }, i * 5);
+      }
+      showToast('First species logged — expedition unlocked!', 'good');
+    }
+
+    function advanceTutorial(check) {
+      if (!tutorialActive) return;
+      if (check === 'listen' && tutorialStep === 0 && tutorialListenTicks >= LISTEN_HOLD_TICKS) {
+        tutorialStep = 1;
+        renderTutorial();
+        updateMissionBar('listen');
+      }
+      if (check === 'record' && tutorialStep === 1) {
+        tutorialStep = 2;
+        renderTutorial();
+        updateMissionBar('record');
+      }
+      if (check === 'identify' && tutorialStep === 2) {
+        tutorialStep = 3;
+        renderTutorial();
+        showTutorialConfetti();
+        try { localStorage.setItem(TUTORIAL_STORAGE_KEY, '1'); } catch (e) {}
+        setTimeout(() => {
+          const panel = document.getElementById('interactive-tutorial');
           if (panel) panel.classList.add('hidden');
-          coachActive = false;
-        }, 3200);
+          tutorialActive = false;
+          clearTutorialPulse();
+          updateProgressiveDisclosure();
+        }, 2800);
       }
     }
 
@@ -371,6 +442,12 @@
       document.getElementById('onboard-title').textContent = step.title;
       document.getElementById('onboard-body').textContent = step.body;
       document.getElementById('onboard-next').textContent = onboardingStep >= ONBOARD_STEPS.length - 1 ? 'Start playing' : 'Next';
+      const skipBtn = document.getElementById('onboard-skip');
+      if (skipBtn) {
+        try {
+          skipBtn.classList.toggle('hidden', localStorage.getItem(TUTORIAL_STORAGE_KEY) !== '1');
+        } catch (e) { skipBtn.classList.add('hidden'); }
+      }
     }
 
     function showAudioGateIfNeeded() {
@@ -639,9 +716,11 @@
       const active = animals.filter(a => a.activity.includes(gameState.timeOfDay));
       active.slice(0, 2).forEach((a, j) => {
         a.lastCall = performance.now() - 200 * j;
-        const d = Math.hypot(a.x - player.x, a.y - player.y);
-        const df = Math.max(0.15, 1 - d / 520);
-        playCall(a.species, 0.55, (a.x - player.x) / 620, df * (listenActive ? 1.35 : 0.9));
+        const audio = EchoesCore.computeCallWarmth(
+          { x: player.x, y: player.y, facing: player.facing, listenActive },
+          a
+        );
+        playCall(a.species, audio.vol * 0.85, audio.pan, 1);
       });
     }
 
@@ -737,7 +816,7 @@
       }
       playCall(best.species, 0.95 * clip.quality, (best.x - player.x) / 580, 1);
       updateMissionBar('record');
-      advanceCoach('record');
+      advanceTutorial('record');
       showIdentifyUI(clip);
       return clip;
     }
@@ -773,10 +852,11 @@
         }
         const shareBtn = document.getElementById('share-btn');
         if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
-        advanceCoach('identify');
+        advanceTutorial('identify');
         updateMissionBar(logged >= 6 ? 'report' : 'explore');
         setRecordDockEnabled(false);
-        coachListenTicks = 0;
+        tutorialListenTicks = 0;
+        updateProgressiveDisclosure();
       } else {
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s => s.id === chosenId).name });
         showToast(`${personaHint('miss')} (−${Math.abs(outcome.delta)}% integrity)`, 'warn');
@@ -811,11 +891,11 @@
 
       fieldLoopExplore(now, dt);
       if (listenActive) {
-        coachListenTicks++;
-        if (coachListenTicks >= 25) {
+        tutorialListenTicks++;
+        if (tutorialListenTicks >= LISTEN_HOLD_TICKS) {
           setRecordDockEnabled(true);
-          advanceCoach('listen');
-          updateMissionBar('listen');
+          advanceTutorial('listen');
+          if (!tutorialActive) updateMissionBar('listen');
         }
       }
       wasMouseDown = mouse.down;
@@ -854,16 +934,12 @@
             });
           }
           // play sound if reasonably close or listening toward them
-          const dx = a.x - player.x;
-          const dy = a.y - player.y;
-          const dist = Math.hypot(dx, dy);
-          const dirTo = Math.atan2(dy, dx);
-          const adiff = EchoesCore.angleDiff(dirTo, player.facing || 0);
-          const facingBonus = EchoesCore.facingBonusFromDiff(adiff, listenActive);
-          if (dist < 520 || (listenActive && dist < 720)) {
-            const vol = (0.85 * Math.max(0.12, 1 - dist / 560)) * (listenActive ? 1.25 : 0.85) * facingBonus;
-            const panning = Math.max(-0.9, Math.min(0.9, dx / 560));
-            playCall(a.species, vol, panning, 1);
+          const audio = EchoesCore.computeCallWarmth(
+            { x: player.x, y: player.y, facing: player.facing, listenActive },
+            a
+          );
+          if (audio.dist < 520 || (listenActive && audio.dist < 720)) {
+            playCall(a.species, audio.vol, audio.pan, 1);
           }
         }
       });
@@ -1040,9 +1116,9 @@
 
       let playerImg = hikerImgs.normal;
       let imgW = 52, imgH = 52;
-      if (isDashing && hikerImgs.dash.complete) {
+      if (isDashEnabled() && isDashing && hikerImgs.dash.complete) {
         playerImg = hikerImgs.dash;
-      } else if (isChargingMove && hikerImgs.charge.complete) {
+      } else if (isDashEnabled() && isChargingMove && hikerImgs.charge.complete) {
         playerImg = hikerImgs.charge;
       } else if (hikerImgs.normal.complete) {
         playerImg = hikerImgs.normal;
@@ -1067,8 +1143,7 @@
         ctx.fill();
       }
 
-      // charge progress bar (visual for "holding on" - fingers grip)
-      if (isChargingMove && chargeMoveTime > 0) {
+      if (isDashEnabled() && isChargingMove && chargeMoveTime > 0) {
         const barW = 34;
         const barH = 5;
         const pct = Math.min(1, chargeMoveTime / 1.0);
@@ -1123,6 +1198,14 @@
     }
 
     function recordClip() {
+      if (tutorialActive && tutorialStep < 1) {
+        showToast('Hold 🎧 Listen for 2 seconds first.', 'info');
+        return;
+      }
+      if (document.getElementById('btn-record')?.disabled) {
+        showToast('Hold Listen first to unlock Record.', 'info');
+        return;
+      }
       updateStreak();
       ensureAudio();
       fieldLoopRecord();
@@ -1150,7 +1233,13 @@
         b.dataset.speciesId = sp.id;
         if (choice.isLikely) b.dataset.likely = '1';
         b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span>${likelyTag}<div class="text-[10px] text-white/50">${sp.fact}</div>`;
-        b.onclick = () => submitIdentification(sp.id);
+        if (tutorialActive && tutorialStep === 2 && !choice.isLikely) {
+          b.disabled = true;
+          b.className += ' opacity-40 cursor-not-allowed';
+          b.onclick = () => showToast('Tap the ★ Most likely card for your first log.', 'info');
+        } else {
+          b.onclick = () => submitIdentification(sp.id);
+        }
         opts.appendChild(b);
       });
       if (clip.quality < 0.55) {
@@ -1251,7 +1340,12 @@
       const best = qualityScores.length > 0 ? Math.max(...qualityScores) : 0;
       const habitatName = document.getElementById('title').textContent;
       const done = EchoesCore.markHabitatDone(getHabitatsDone(), gameState.habitat);
-      try { localStorage.setItem('echoes-habitats-done', JSON.stringify(done)); } catch (e) {}
+      try {
+        localStorage.setItem('echoes-habitats-done', JSON.stringify(done));
+        localStorage.setItem('echoes-expedition-level', String(Math.max(getExpeditionLevel(), 2)));
+      } catch (e) {}
+      if (session) session.dashEnabled = isDashEnabled();
+      updateProgressiveDisclosure();
       const remaining = ['forest', 'marsh', 'canyon'].filter(h => !done.includes(h));
 
       // Educational takeaway
@@ -1374,8 +1468,14 @@
     }
 
     function setup() {
-      session = new EchoesCore.FieldSession({ habitat: 'forest', timeOfDay: 'dawn', speciesList: species });
+      session = new EchoesCore.FieldSession({
+        habitat: 'forest',
+        timeOfDay: 'dawn',
+        speciesList: species,
+        dashEnabled: isDashEnabled(),
+      });
       syncFromSession();
+      updateProgressiveDisclosure();
       window.__echoesSession = session;
 
       session.player.vx = 0.9;
@@ -1505,15 +1605,7 @@
         }
       }, 900);
 
-      // Highlight the new mechanic briefly
-      setTimeout(() => {
-        const tip = document.querySelector('div.mt-3');
-        if (tip) tip.style.transition = 'all 0.5s';
-        setTimeout(() => { if (tip) tip.style.boxShadow = '0 0 0 3px rgba(74,222,128,0.3)'; }, 200);
-        setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
-      }, 2500);
-
-      console.log('%c[ECHOES] Playtest v1.4.3 — inlined pure helpers + fieldLoop chain.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.6 — FTUE tutorial + progressive UI + stereo warmth.', 'color:#4ade80');
     }
 
     function updateStats() {
