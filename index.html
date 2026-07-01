@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#050f0c">
   <title>ECHOES • Wildlife Acoustics</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -12,6 +14,15 @@
     .panel { background: rgba(15, 35, 28, 0.85); }
     .species-btn { transition: all .1s; }
     .species-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); }
+    #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; font-size: 12px; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .2s; max-width: 90vw; text-align: center; }
+    #toast.show { opacity: 1; }
+    #mobile-hud { display: none; position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 12px); padding: 0 12px 8px; gap: 8px; justify-content: center; z-index: 40; }
+    #mobile-hud button { flex: 1; max-width: 110px; min-height: 48px; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); background: rgba(15,35,28,.92); color: #e2e8f0; font-size: 11px; font-weight: 600; touch-action: manipulation; }
+    #mobile-hud button.active { background: rgba(16,185,129,.35); border-color: rgba(74,222,128,.5); }
+    #mobile-hud button.record { background: rgba(220,38,38,.85); border-color: rgba(248,113,113,.6); }
+    @media (max-width: 768px) { body { padding: 12px; } #mobile-hud { display: flex; } .desktop-hint { display: none; } h1 { font-size: 2rem !important; } }
+    #onboard { position: fixed; inset: 0; background: rgba(0,0,0,.78); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    #onboard .card { background: #0f231c; border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 420px; width: 100%; padding: 20px; }
   </style>
 </head>
 <body class="p-6 max-w-5xl mx-auto">
@@ -41,10 +52,22 @@
     <button onclick="shareFieldReport()" id="share-btn" class="hidden px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-share-alt"></i> Report</button>
     <button onclick="copyPlaytestFeedback()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Feedback</button>
     <button onclick="showHelp()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Help</button>
-    <span class="text-[10px] text-emerald-300/50 ml-1">Playtest build — use Feedback button. Get close + face them while listening for best recordings</span>
+    <select id="persona" onchange="setPersona(this.value)" class="px-2 py-0.5 text-[10px] rounded bg-white/5 border border-white/10 text-emerald-200/80" title="Playtest persona">
+      <option value="liam">Persona: Casual</option>
+      <option value="aisha">Persona: Educator</option>
+      <option value="marcus">Persona: Citizen scientist</option>
+      <option value="elena">Persona: Pro biologist</option>
+    </select>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.1 — tap Feedback when done. Get close + face them while listening.</span>
   </div>
 
-  <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair"></canvas>
+  <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
+  <div id="mobile-hud" aria-label="Touch controls">
+    <button id="btn-listen" type="button">🎧 Listen</button>
+    <button id="btn-record" type="button" class="record">⏺ Record</button>
+    <button id="btn-time" type="button">⏱ Time</button>
+  </div>
+  <div id="toast" role="status"></div>
 
   <div class="mt-3 text-center text-xs text-emerald-300/50">Animals call on their own. Hold L (or mouse) for the directional cone. <strong>Hold mouse button to grip/charge — release to break free and shoot forward.</strong> Get close, record (R or button), identify to log + raise integrity.</div>
 
@@ -84,12 +107,28 @@
           <li>Complete 6/6 in a habitat for a special Field Report you can share</li>
         </ul>
         <p class="text-[10px]">For this playtest: Try to complete at least one full habitat. Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest build • June 2026 • Single-file prototype</p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.1 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="onboard" class="hidden" onclick="if (event.target.id === 'onboard') advanceOnboarding()">
+    <div class="card" onclick="event.stopPropagation()">
+      <div class="text-xs text-emerald-400/70 mb-1" id="onboard-step">Step 1 of 3</div>
+      <div class="font-semibold text-lg mb-2" id="onboard-title">Listen like a field biologist</div>
+      <p class="text-sm text-emerald-300/80 mb-4" id="onboard-body">Move with WASD or tap the canvas. Hold Listen (L or the green cone) to aim your mic — animals get louder when you face them.</p>
+      <div class="flex justify-between items-center">
+        <button onclick="skipOnboarding()" class="text-xs text-white/40 hover:text-white/70">Skip tour</button>
+        <button onclick="advanceOnboarding()" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-medium rounded-2xl" id="onboard-next">Next</button>
       </div>
     </div>
   </div>
 
   <script>
+    const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
+    const BUILD_VERSION = 'playtest-v1.1-jul2026';
+    let persona = 'liam';
+    let onboardingStep = 0;
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
@@ -114,9 +153,9 @@
       charge: new Image(),
       dash: new Image()
     };
-    hikerImgs.normal.src = SPRITES.hikerNormal;
-    hikerImgs.charge.src = SPRITES.hikerCharge;
-    hikerImgs.dash.src = SPRITES.hikerDash;
+    hikerImgs.normal.src = SPRITES.hikernormal;
+    hikerImgs.charge.src = SPRITES.hikercharge;
+    hikerImgs.dash.src = SPRITES.hikerdash;
 
     const animalImgs = {
       cardinal: new Image(),
@@ -142,29 +181,90 @@
     envImgs.reed.src = SPRITES.reed;
     envImgs.rock.src = SPRITES.rock;
 
-    hikerImgs.normal.src = SPRITES.hikerNormal;
-    hikerImgs.charge.src = SPRITES.hikerCharge;
-    hikerImgs.dash.src = SPRITES.hikerDash;
+    function showToast(msg, tone = 'info') {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      const styles = {
+        info: 'background:#0f231c;color:#a7f3d0;border:1px solid rgba(74,222,128,.35)',
+        good: 'background:#064e3b;color:#6ee7b7;border:1px solid rgba(52,211,153,.45)',
+        warn: 'background:#450a0a;color:#fca5a5;border:1px solid rgba(248,113,113,.35)'
+      };
+      el.style.cssText = styles[tone] || styles.info;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.remove('show'), 2200);
+    }
 
-    
-    const animalImgs = {
-      cardinal: new Image(),
-      owl: new Image(),
-      bat: new Image(),
-      peeper: new Image(),
-      cricket: new Image(),
-      woodpecker: new Image()
-    };
-    animalImgs.cardinal.src = SPRITES.cardinal;
-    animalImgs.owl.src = SPRITES.owl;
-    animalImgs.bat.src = SPRITES.bat;
-    animalImgs.peeper.src = SPRITES.peeper;
-    animalImgs.cricket.src = SPRITES.cricket;
-    animalImgs.woodpecker.src = SPRITES.woodpecker;
+    function personaHint(kind) {
+      const hints = {
+        liam: { miss: 'Miss — get closer and aim the cone!', learn: 'Tip: the cone is your superpower.' },
+        aisha: { miss: 'Not quite — try facing the animal while holding Listen.', learn: 'Teaching moment: directional mics reduce background noise.' },
+        marcus: { miss: 'ID miss — improve SNR by closing distance + aiming.', learn: 'Field tip: log clean clips for your BioBlitz report.' },
+        elena: { miss: 'Incorrect ID — check spectrogram quality and bearing.', learn: 'Pro note: integrity reflects recording SNR + correct classification.' }
+      };
+      return (hints[persona] || hints.liam)[kind];
+    }
 
-    animalImgs.cardinal.src = SPRITES.cardinal;
-    animalImgs.owl.src = SPRITES.owl;
-    animalImgs.bat.src = SPRITES.bat;
+    function setPersona(v) {
+      persona = v;
+      try { localStorage.setItem('echoes-persona', v); } catch (e) {}
+    }
+
+    function getHabitatsDone() {
+      try { return JSON.parse(localStorage.getItem('echoes-habitats-done') || '[]'); } catch (e) { return []; }
+    }
+
+    function markHabitatDone(h) {
+      const done = getHabitatsDone();
+      if (!done.includes(h)) {
+        done.push(h);
+        try { localStorage.setItem('echoes-habitats-done', JSON.stringify(done)); } catch (e) {}
+      }
+      return done;
+    }
+
+    const ONBOARD_STEPS = [
+      { title: 'Listen like a field biologist', body: 'Move with WASD or tap the canvas. Hold Listen (L, touch 🎧, or mouse) to aim your mic — animals get louder when you face them.' },
+      { title: 'Record and identify', body: 'While listening, press Record (R or ⏺). Pick the species from the cards — the mini spectrogram hints at call shape (bat FM sweeps, bird whistles, frog peeps).' },
+      { title: 'Complete + share', body: 'Log all 6 species in a habitat, copy your Field Report, then try Marsh or Canyon. Hit Feedback when your session ends — that data shapes v1.2.' }
+    ];
+
+    function renderOnboarding() {
+      const step = ONBOARD_STEPS[onboardingStep];
+      document.getElementById('onboard-step').textContent = `Step ${onboardingStep + 1} of ${ONBOARD_STEPS.length}`;
+      document.getElementById('onboard-title').textContent = step.title;
+      document.getElementById('onboard-body').textContent = step.body;
+      document.getElementById('onboard-next').textContent = onboardingStep >= ONBOARD_STEPS.length - 1 ? 'Start playing' : 'Next';
+    }
+
+    function advanceOnboarding() {
+      if (onboardingStep >= ONBOARD_STEPS.length - 1) {
+        document.getElementById('onboard').classList.add('hidden');
+        try { localStorage.setItem('echoes-onboarding-v1', '1'); } catch (e) {}
+        ensureAudio();
+        return;
+      }
+      onboardingStep += 1;
+      renderOnboarding();
+    }
+
+    function skipOnboarding() {
+      document.getElementById('onboard').classList.add('hidden');
+      try { localStorage.setItem('echoes-onboarding-v1', '1'); } catch (e) {}
+    }
+
+    function maybeShowOnboarding() {
+      try {
+        if (!localStorage.getItem('echoes-onboarding-v1')) {
+          onboardingStep = 0;
+          renderOnboarding();
+          document.getElementById('onboard').classList.remove('hidden');
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
 
 
 
@@ -821,19 +921,16 @@
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
         playCall(clip.dominant, 0.6, 0, 1);
 
+        showToast(`✓ ${clip.dominant.name} logged — integrity +${gain}%`, 'good');
+
         // Show share button after first success (viral prep)
         const shareBtn = document.getElementById('share-btn');
         if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
       } else {
-        integrity = Math.max(35, integrity - (q > 0.7 ? 8 : 4));
+        const loss = q > 0.7 ? 8 : 4;
+        integrity = Math.max(35, integrity - loss);
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s=>s.id===chosenId).name });
-
-        // Clear feedback on miss (helps with opaque integrity)
-        const hint = document.createElement('div');
-        hint.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#450a0a; color:#fca5a5; padding:2px 8px; border-radius:6px; font-size:10px; z-index:9999;';
-        hint.textContent = 'Missed — try getting closer or facing with L held';
-        document.body.appendChild(hint);
-        setTimeout(() => { if (hint.parentNode) hint.parentNode.removeChild(hint); }, 1600);
+        showToast(`${personaHint('miss')} (−${loss}% integrity)`, 'warn');
       }
       document.getElementById('integrity').textContent = integrity;
       try {
@@ -922,19 +1019,28 @@
       const qualityScores = correctEntries.map(e => Math.round(e.quality * 100));
       const best = qualityScores.length > 0 ? Math.max(...qualityScores) : 0;
       const habitatName = document.getElementById('title').textContent;
+      const done = markHabitatDone(gameState.habitat);
+      const remaining = ['forest', 'marsh', 'canyon'].filter(h => !done.includes(h));
 
       // Educational takeaway
       const facts = correctEntries.slice(0,3).map(e => e.species.fact).join(' ');
       const takeaway = facts ? `Key sounds: ${facts}` : '';
+      const learnLine = personaHint('learn');
+
+      const nextHabitatBtns = remaining.map(h => {
+        const label = h === 'marsh' ? 'Try Marsh →' : (h === 'canyon' ? 'Try Canyon →' : 'Try Forest →');
+        return `<button onclick="switchHabitat('${h}')" class="px-3 py-1.5 text-xs rounded-2xl bg-emerald-600/80 hover:bg-emerald-500 text-black font-medium">${label}</button>`;
+      }).join(' ');
 
       // Preserve previous journal content
       const previous = j.innerHTML || '';
       j.innerHTML = `
         <div class="bg-emerald-900/30 border border-emerald-400/40 rounded-2xl p-4 mb-3">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div>
               <div class="text-emerald-400 font-semibold text-lg">Expedition Complete ✓</div>
               <div class="text-sm text-emerald-300/70">${habitatName} • ${correctEntries.length}/6 species • ${integrity}% integrity</div>
+              <div class="text-[10px] text-emerald-300/50 mt-1">Habitats cleared: ${done.length}/3</div>
             </div>
             <div class="text-right">
               <button onclick="shareFieldReport()" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-medium rounded-2xl flex items-center gap-2">
@@ -943,10 +1049,12 @@
             </div>
           </div>
           <div class="text-xs text-emerald-300/70 mb-1">Best clean recording: ${best}%. ${takeaway}</div>
-          <div class="text-[10px] text-emerald-300/50">Logged: ${correctEntries.map(e => e.species.name).join(', ')}</div>
-          <div class="text-xs text-emerald-300/60">Nice work — try switching habitats or times of day for new calls.</div>
-          <button onclick="resetExpedition()" class="mt-3 text-xs px-3 py-1 rounded bg-white/10 hover:bg-white/20">Start New Expedition</button>
-          <div class="text-[10px] text-emerald-400/50 mt-2">Thanks for playtesting! Please use the Feedback button.</div>
+          <div class="text-xs text-emerald-300/80 mb-2 p-2 rounded-lg bg-black/20 border border-white/5"><strong>What you learned:</strong> ${learnLine} Facing animals + staying close produces cleaner clips and higher integrity.</div>
+          <div class="text-[10px] text-emerald-300/50 mb-2">Logged: ${correctEntries.map(e => e.species.name).join(', ')}</div>
+          ${remaining.length ? `<div class="flex flex-wrap gap-2 mb-2">${nextHabitatBtns}</div>` : `<div class="text-sm text-emerald-300 font-medium mb-2">🎉 All three habitats cleared — you're ready for the full survey!</div>`}
+          <button onclick="resetExpedition()" class="mt-1 text-xs px-3 py-1 rounded bg-white/10 hover:bg-white/20">Replay this habitat</button>
+          <button onclick="copyPlaytestFeedback()" class="mt-1 ml-2 text-xs px-3 py-1 rounded bg-white/10 hover:bg-white/20">Copy Feedback</button>
+          <div class="text-[10px] text-emerald-400/50 mt-2">Thanks for playtesting! Paste Feedback into your survey or email.</div>
         </div>
         ${previous}
       `;
@@ -984,8 +1092,9 @@
         `Best recording quality: ${avgQuality}%\n\n` +
         `Highlights:\n` + correctOnes.slice(0,4).map(e => `• ${e.species.name} (${e.time})`).join('\n') + `\n\n` +
         `What I learned: Listening direction and proximity matter a lot for clean recordings.\n\n` +
-        `Played in ECHOES • Wildlife Acoustics\n` +
-        `https://www.wildlifeacoustics.com`;
+        `Played in ECHOES • Wildlife Acoustics (${BUILD_VERSION})\n` +
+        `Play: ${PLAYTEST_URL}\n` +
+        `Inspired by real field work: https://www.wildlifeacoustics.com`;
 
       navigator.clipboard.writeText(report).then(() => {
         const btns = document.querySelectorAll('button');
@@ -1114,6 +1223,32 @@
       }, {passive: false});
       canvas.addEventListener('touchend', () => { mouse.listenDown = false; });
 
+      const btnListen = document.getElementById('btn-listen');
+      const btnRecord = document.getElementById('btn-record');
+      const btnTime = document.getElementById('btn-time');
+      if (btnListen) {
+        const setListen = (on) => {
+          mouse.listenDown = on;
+          btnListen.classList.toggle('active', on);
+        };
+        btnListen.addEventListener('touchstart', (e) => { e.preventDefault(); setListen(true); ensureAudio(); }, { passive: false });
+        btnListen.addEventListener('touchend', () => setListen(false));
+        btnListen.addEventListener('mousedown', () => setListen(true));
+        btnListen.addEventListener('mouseup', () => setListen(false));
+        btnListen.addEventListener('mouseleave', () => setListen(false));
+      }
+      if (btnRecord) btnRecord.addEventListener('click', () => { ensureAudio(); recordClip(); });
+      if (btnTime) btnTime.addEventListener('click', () => advanceTime());
+
+      try {
+        const savedPersona = localStorage.getItem('echoes-persona');
+        if (savedPersona) {
+          persona = savedPersona;
+          const sel = document.getElementById('persona');
+          if (sel) sel.value = savedPersona;
+        }
+      } catch (e) {}
+
       // initial time badge
       document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
       updateBestDisplay();
@@ -1140,16 +1275,18 @@
 
       gameLoop();
 
-      // Playtest helper: show help once on first load
-      try {
-        if (!localStorage.getItem('echoes-playtest-seen-help')) {
-          setTimeout(() => {
-            const m = document.getElementById('help-modal');
-            if (m) m.classList.remove('hidden');
-            localStorage.setItem('echoes-playtest-seen-help', '1');
-          }, 1800);
+      // Guided onboarding on first load; help modal as fallback
+      setTimeout(() => {
+        if (!maybeShowOnboarding()) {
+          try {
+            if (!localStorage.getItem('echoes-playtest-seen-help')) {
+              const m = document.getElementById('help-modal');
+              if (m) m.classList.remove('hidden');
+              localStorage.setItem('echoes-playtest-seen-help', '1');
+            }
+          } catch (e) {}
         }
-      } catch(e){}
+      }, 900);
 
       // Highlight the new mechanic briefly
       setTimeout(() => {
@@ -1159,7 +1296,7 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      console.log('%c[ECHOES] Playtest build ready — custom images, grip-and-shoot mechanic, full features. Ready for 20 users.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.1 ready — onboarding, mobile HUD, persona hints, habitat progression.', 'color:#4ade80');
     }
 
     function updateStats() {
@@ -1169,7 +1306,11 @@
     function copyPlaytestFeedback() {
       const durationMin = Math.round((Date.now() - sessionStart) / 60000);
       const session = {
+        build: BUILD_VERSION,
+        playtestUrl: PLAYTEST_URL,
+        persona: persona,
         habitat: gameState.habitat,
+        habitatsCompleted: getHabitatsDone(),
         timeOfDay: gameState.timeOfDay,
         logged: logged,
         integrity: integrity,
@@ -1178,7 +1319,7 @@
         correct: journalEntries.filter(e=>e.correct).length,
         durationMinutes: durationMin,
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent.slice(0,80)
+        userAgent: navigator.userAgent.slice(0,120)
       };
       const text = `ECHOES Playtest Feedback\n` + JSON.stringify(session, null, 2) + 
         `\n\nQuick comments (please fill):\n` +

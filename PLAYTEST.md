@@ -1,8 +1,18 @@
 # ECHOES Wildlife Acoustics – 20-Person Playtest Kit
 
-**Version**: Playtest build (June 2026)  
-**Game file**: `index.html` (single self-contained HTML)  
+**Version**: Playtest v1.1 (July 2026)  
+**Live link (send this)**: https://snixdorff-netizen.github.io/echoes-wild/  
+**Game file**: `index.html` (single self-contained HTML — also works offline)  
 **Goal of test**: Validate fun, education value, usability, viral potential, and retention hooks with real users before further development or Unity port.
+
+### v1.1 changes (team review)
+- Fixed hiker sprite loading bug
+- 3-step guided onboarding on first visit
+- Mobile touch HUD (Listen / Record / Time)
+- Persona selector (Casual / Educator / Citizen scientist / Pro) — affects hints
+- Clear integrity +/- toasts on correct/miss IDs
+- Stronger expedition-complete screen with habitat CTAs + "What you learned"
+- Tracks habitats cleared (0/3 → 3/3) in Feedback JSON
 
 ## Overview & Timeline
 - Total participants: 20 (balanced mix)
@@ -20,20 +30,22 @@
 **Incentives**: None required, but thank-you note or small donation to wildlife org is nice.
 
 ## Recruitment Message (copy-paste)
-Subject: 15-min playtest for a wildlife sound game (fun + feedback)
+Subject: 15-min playtest — wildlife sound game (browser, no install)
 
 Hi,
 
-I'm testing a small browser game called ECHOES about recording and identifying animal calls (like a mix of field biology and light puzzle).
+I'm testing **ECHOES**, a browser game about recording and identifying animal calls (field biology meets light puzzle).
 
-Would you be up for a quick 12-18 minute play session this week? It's all in your browser, no install. I'll ask a few questions afterward about what was fun or confusing.
+Would you try a **12–18 minute session** this week? No install — just open this link on phone or laptop:
 
-Takes ~15 min total. Happy to hop on a quick call or do async.
+**https://snixdorff-netizen.github.io/echoes-wild/**
 
-Reply if interested and I'll send the link + time options.
+Headphones help. At the end, tap the **Feedback** button and paste the result into my short survey (or email it back).
+
+Happy to do async or a quick screen-share call.
 
 Thanks!
-[Your name]
+Stuart
 
 ## Pre-Session (send with link)
 Please:
@@ -42,7 +54,8 @@ Please:
 3. Be in a quiet-ish space (you'll listen to sounds).
 4. Optional: headphones.
 
-**Link / file**: [send the index.html or folder]
+**Link**: https://snixdorff-netizen.github.io/echoes-wild/  
+**Offline fallback**: send the `index.html` file or whole folder
 
 ## Session Script (moderator / self-guided)
 
