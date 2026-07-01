@@ -9,6 +9,7 @@
     "verify": "node tools/browser-verify.mjs",
     "evidence": "node tools/collect-evidence.mjs",
     "war-room": "node tools/war-room.mjs",
+    "expert-war-room": "node tools/expert-war-room.mjs",
     "verify:all": "npm test && node tools/run-sim-twice.mjs && node tools/browser-verify.mjs && node tools/collect-evidence.mjs"
   },
   "devDependencies": {
