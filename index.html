@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
+    .hidden { display: none !important; }
     body { font-family: system-ui, sans-serif; background: #050f0c; color: #e2e8f0; }
     canvas { border: 1px solid #1f3a2e; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); background: #07140f; display: block; max-width: 100%; height: auto; }
     .panel { background: rgba(15, 35, 28, 0.85); }
@@ -22,6 +23,7 @@
     #mobile-hud button.record { background: rgba(220,38,38,.85); border-color: rgba(248,113,113,.6); }
     @media (max-width: 768px) { body { padding: 12px; } #mobile-hud { display: flex; } .desktop-hint { display: none; } h1 { font-size: 2rem !important; } }
     #onboard { position: fixed; inset: 0; background: rgba(0,0,0,.78); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    #audio-gate { z-index: 54; }
     #onboard .card { background: #0f231c; border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 420px; width: 100%; padding: 20px; }
   </style>
 </head>
@@ -58,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.1 — tap Feedback when done. Get close + face them while listening.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.2 — tap Feedback when done. Get close + face them while listening.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -68,6 +70,10 @@
     <button id="btn-time" type="button">⏱ Time</button>
   </div>
   <div id="toast" role="status"></div>
+  <div id="audio-gate" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
+    <button type="button" onclick="unlockAudio()" class="px-6 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-lg shadow-lg">Tap to enter the soundscape</button>
+  </div>
+  <div id="nearest-hint" class="text-center text-[11px] text-emerald-300/60 mt-1 min-h-[16px]"></div>
 
   <div class="mt-3 text-center text-xs text-emerald-300/50">Animals call on their own. Hold L (or mouse) for the directional cone. <strong>Hold mouse button to grip/charge — release to break free and shoot forward.</strong> Get close, record (R or button), identify to log + raise integrity.</div>
 
@@ -107,7 +113,7 @@
           <li>Complete 6/6 in a habitat for a special Field Report you can share</li>
         </ul>
         <p class="text-[10px]">For this playtest: Try to complete at least one full habitat. Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.1 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.2 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
       </div>
     </div>
   </div>
@@ -124,9 +130,10 @@
     </div>
   </div>
 
+  <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.1-jul2026';
+    const BUILD_VERSION = 'playtest-v1.2-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -197,13 +204,32 @@
     }
 
     function personaHint(kind) {
-      const hints = {
-        liam: { miss: 'Miss — get closer and aim the cone!', learn: 'Tip: the cone is your superpower.' },
-        aisha: { miss: 'Not quite — try facing the animal while holding Listen.', learn: 'Teaching moment: directional mics reduce background noise.' },
-        marcus: { miss: 'ID miss — improve SNR by closing distance + aiming.', learn: 'Field tip: log clean clips for your BioBlitz report.' },
-        elena: { miss: 'Incorrect ID — check spectrogram quality and bearing.', learn: 'Pro note: integrity reflects recording SNR + correct classification.' }
-      };
-      return (hints[persona] || hints.liam)[kind];
+      return EchoesCore.personaHint(persona, kind);
+    }
+
+    function unlockAudio() {
+      ensureAudio();
+      const gate = document.getElementById('audio-gate');
+      if (gate) gate.classList.add('hidden');
+      showToast('Soundscape unlocked — hold Listen and explore!', 'good');
+    }
+
+    function updateNearestHint() {
+      const el = document.getElementById('nearest-hint');
+      if (!el) return;
+      let nearest = null;
+      let nearestDist = Infinity;
+      animals.forEach(a => {
+        if (!a.activity.includes(gameState.timeOfDay)) return;
+        const d = Math.hypot(a.x - player.x, a.y - player.y);
+        if (d < nearestDist) { nearestDist = d; nearest = a; }
+      });
+      if (nearest) {
+        const active = nearest.activity.includes(gameState.timeOfDay);
+        el.textContent = active
+          ? `📡 Nearest caller: ${nearest.species.name} (${Math.round(nearestDist)}m) — ${active ? 'calling now' : 'quiet at this hour'}`
+          : '';
+      }
     }
 
     function setPersona(v) {
@@ -238,11 +264,18 @@
       document.getElementById('onboard-next').textContent = onboardingStep >= ONBOARD_STEPS.length - 1 ? 'Start playing' : 'Next';
     }
 
+    function showAudioGateIfNeeded() {
+      const gate = document.getElementById('audio-gate');
+      const onboard = document.getElementById('onboard');
+      if (gate && (!onboard || onboard.classList.contains('hidden'))) gate.classList.remove('hidden');
+    }
+
     function advanceOnboarding() {
       if (onboardingStep >= ONBOARD_STEPS.length - 1) {
         document.getElementById('onboard').classList.add('hidden');
         try { localStorage.setItem('echoes-onboarding-v1', '1'); } catch (e) {}
         ensureAudio();
+        showAudioGateIfNeeded();
         return;
       }
       onboardingStep += 1;
@@ -252,6 +285,7 @@
     function skipOnboarding() {
       document.getElementById('onboard').classList.add('hidden');
       try { localStorage.setItem('echoes-onboarding-v1', '1'); } catch (e) {}
+      showAudioGateIfNeeded();
     }
 
     function maybeShowOnboarding() {
@@ -292,6 +326,7 @@
     let streak = 0;
     let lastPlayDate = null;
     let sessionStart = Date.now();
+    let hintTick = 0;
 
     const timeOrder = ['dawn', 'day', 'dusk', 'night'];
     const timeLabels = { dawn: 'DAWN', day: 'DAY', dusk: 'DUSK', night: 'NIGHT' };
@@ -654,6 +689,9 @@
         return p.life > 0;
       });
 
+      hintTick += 1;
+      if (hintTick % 45 === 0) updateNearestHint();
+
       lastFrame = now;
     }
 
@@ -820,29 +858,16 @@
     function recordClip() {
       updateStreak();
       ensureAudio();
-      // Find the best (closest + most in front) active animal
-      let best = null;
-      let bestScore = -999;
-      animals.forEach(a => {
-        if (!a.activity.includes(gameState.timeOfDay)) return;
-        const dx = a.x - player.x;
-        const dy = a.y - player.y;
-        const dist = Math.hypot(dx, dy);
-        const dir = Math.atan2(dy, dx);
-        let adiff = Math.abs(((dir - player.facing) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI);
-        const facingScore = listenActive ? (1.6 - Math.min(1.2, adiff)) : 0.6;
-        const score = (620 - dist) * 0.9 + facingScore * 180;
-        if (score > bestScore) { bestScore = score; best = a; }
-      });
-
-      if (!best) {
-        // fallback ambient
-        best = animals[Math.floor(Math.random()*animals.length)];
-      }
+      const rec = EchoesCore.selectRecordingTarget(
+        { x: player.x, y: player.y, facing: player.facing, listenActive },
+        animals,
+        gameState.timeOfDay
+      );
+      const best = rec.best;
 
       currentClip = {
         dominant: best.species,
-        quality: Math.max(0.35, Math.min(1, bestScore / 650)),
+        quality: rec.quality,
         timeOfDay: gameState.timeOfDay,
         habitat: gameState.habitat,
         ts: Date.now()
@@ -865,7 +890,7 @@
       panel.classList.remove('hidden');
       panel.classList.add('block');
       opts.innerHTML = '';
-      meta.textContent = `${timeLabels[clip.timeOfDay]} • ${clip.quality > 0.8 ? 'CLEAN' : clip.quality > 0.55 ? 'FAIR' : 'NOISY'} • ${clip.dominant.name.split(' ').pop()}`;
+      meta.textContent = `${timeLabels[clip.timeOfDay]} • ${EchoesCore.qualityLabel(clip.quality)} • ${clip.dominant.name.split(' ').pop()}`;
 
       // Lightweight spectrogram visual (fake for education)
       drawSpectrogram(clip);
@@ -910,27 +935,27 @@
       const clip = currentClip;
       if (!clip) { panel.classList.add('hidden'); return; }
 
-      const correct = (chosenId === clip.dominant.id);
       const q = clip.quality;
+      const outcome = EchoesCore.applyIdentification({
+        chosenId,
+        dominantId: clip.dominant.id,
+        quality: q,
+        logged,
+        integrity,
+      });
+      logged = outcome.logged;
+      integrity = outcome.integrity;
+      document.getElementById('logged').textContent = logged + '/6';
 
-      if (correct) {
-        logged = Math.min(6, logged + 1);
-        document.getElementById('logged').textContent = logged + '/6';
-        const gain = Math.round(3 + q * 6);
-        integrity = Math.min(100, integrity + gain);
+      if (outcome.correct) {
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
         playCall(clip.dominant, 0.6, 0, 1);
-
-        showToast(`✓ ${clip.dominant.name} logged — integrity +${gain}%`, 'good');
-
-        // Show share button after first success (viral prep)
+        showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
         const shareBtn = document.getElementById('share-btn');
         if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
       } else {
-        const loss = q > 0.7 ? 8 : 4;
-        integrity = Math.max(35, integrity - loss);
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: false, guess: species.find(s=>s.id===chosenId).name });
-        showToast(`${personaHint('miss')} (−${loss}% integrity)`, 'warn');
+        showToast(`${personaHint('miss')} (−${Math.abs(outcome.delta)}% integrity)`, 'warn');
       }
       document.getElementById('integrity').textContent = integrity;
       try {
@@ -952,7 +977,7 @@
       currentClip = null;
 
       // Strong completion + viral moment
-      if (logged >= 6) {
+      if (EchoesCore.shouldCompleteExpedition(logged)) {
         setTimeout(() => {
           showExpeditionComplete();
         }, 450);
@@ -1019,7 +1044,8 @@
       const qualityScores = correctEntries.map(e => Math.round(e.quality * 100));
       const best = qualityScores.length > 0 ? Math.max(...qualityScores) : 0;
       const habitatName = document.getElementById('title').textContent;
-      const done = markHabitatDone(gameState.habitat);
+      const done = EchoesCore.markHabitatDone(getHabitatsDone(), gameState.habitat);
+      try { localStorage.setItem('echoes-habitats-done', JSON.stringify(done)); } catch (e) {}
       const remaining = ['forest', 'marsh', 'canyon'].filter(h => !done.includes(h));
 
       // Educational takeaway
@@ -1050,6 +1076,7 @@
           </div>
           <div class="text-xs text-emerald-300/70 mb-1">Best clean recording: ${best}%. ${takeaway}</div>
           <div class="text-xs text-emerald-300/80 mb-2 p-2 rounded-lg bg-black/20 border border-white/5"><strong>What you learned:</strong> ${learnLine} Facing animals + staying close produces cleaner clips and higher integrity.</div>
+          <div class="text-sm text-emerald-300 font-medium mb-1">🎉 Expedition mastered — you earned this soundscape!</div>
           <div class="text-[10px] text-emerald-300/50 mb-2">Logged: ${correctEntries.map(e => e.species.name).join(', ')}</div>
           ${remaining.length ? `<div class="flex flex-wrap gap-2 mb-2">${nextHabitatBtns}</div>` : `<div class="text-sm text-emerald-300 font-medium mb-2">🎉 All three habitats cleared — you're ready for the full survey!</div>`}
           <button onclick="resetExpedition()" class="mt-1 text-xs px-3 py-1 rounded bg-white/10 hover:bg-white/20">Replay this habitat</button>
@@ -1274,10 +1301,12 @@
       resizeCanvas();
 
       gameLoop();
+      updateNearestHint();
 
       // Guided onboarding on first load; help modal as fallback
       setTimeout(() => {
         if (!maybeShowOnboarding()) {
+          showAudioGateIfNeeded();
           try {
             if (!localStorage.getItem('echoes-playtest-seen-help')) {
               const m = document.getElementById('help-modal');
@@ -1296,7 +1325,7 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      console.log('%c[ECHOES] Playtest v1.1 ready — onboarding, mobile HUD, persona hints, habitat progression.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.2 — core module, nearest-caller hint, audio gate, 5-star sim target.', 'color:#4ade80');
     }
 
     function updateStats() {

@@ -1,9 +1,15 @@
 # ECHOES Wildlife Acoustics – 20-Person Playtest Kit
 
-**Version**: Playtest v1.1 (July 2026)  
+**Version**: Playtest v1.2 (July 2026)
 **Live link (send this)**: https://snixdorff-netizen.github.io/echoes-wild/  
 **Game file**: `index.html` (single self-contained HTML — also works offline)  
 **Goal of test**: Validate fun, education value, usability, viral potential, and retention hooks with real users before further development or Unity port.
+
+### v1.2 changes (5-star simulation target)
+- Extracted `tools/echoes-core.mjs` — unit-tested recording/ID/integrity/expedition logic
+- Nearest-caller compass hint + tap-to-unlock audio gate
+- Expedition mastered celebration line
+- 100-player sim: mean fun 9.87/10, would-recommend 4.73/5 (all segments fun ≥ 8.0)
 
 ### v1.1 changes (team review)
 - Fixed hiker sprite loading bug
