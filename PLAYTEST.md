@@ -1,9 +1,15 @@
 # ECHOES Wildlife Acoustics – 20-Person Playtest Kit
 
-**Version**: Playtest v1.4 (July 2026)
+**Version**: Playtest v1.4.1 (July 2026)
 **Live link (send this)**: https://snixdorff-netizen.github.io/echoes-wild/  
 **Game file**: `index.html` (single self-contained HTML — also works offline)  
 **Goal of test**: Validate fun, education value, usability, viral potential, and retention hooks with real users before further development or Unity port.
+
+### v1.4.1 changes (general-public 5-star polish)
+- Identify panel filters to species active at current time (fewer wrong-card picks)
+- Casual persona: "★ Most likely" highlight at fair+ clips (quality ≥ 0.48)
+- Final-stretch toasts at 4/6 and 5/6 logged; FIELD_LOOP comments trace loop in index.html
+- Sim gates general segment: ≥98% completion, ≥4.95 would-recommend at recruitment skill
 
 ### v1.4 changes (FieldSession single source of truth)
 - `FieldSession` class powers both `index.html` and 100-player sim (`window.__echoesSession`)

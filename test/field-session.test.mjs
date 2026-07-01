@@ -46,6 +46,19 @@ describe('FieldSession core loop', () => {
   });
 });
 
+describe('shipped index.html wires FIELD_LOOP to FieldSession', () => {
+  it('recordClip and submitIdentification delegate to session.record/identify', () => {
+    assert.match(html, /function recordClip\(\)[\s\S]*session\.record\(\)/);
+    assert.match(html, /function submitIdentification[\s\S]*session\.identify\(/);
+    assert.match(html, /function update\(\)[\s\S]*session\.tick\(/);
+    assert.match(html, /shouldCompleteExpedition|logged >= 6/);
+    assert.match(html, /function showExpeditionComplete/);
+    assert.match(html, /FIELD_LOOP step 1/);
+    assert.match(html, /activeSpeciesForTime/);
+    assert.match(html, /Most likely/);
+  });
+});
+
 describe('browser bundle includes FieldSession', () => {
   it('loads FieldSession from generated browser file', () => {
     const browserSrc = readFileSync(join(root, 'tools/echoes-core.browser.js'), 'utf8');
@@ -122,5 +135,10 @@ describe('100-player aggregate thresholds (FieldSession driver)', () => {
       const mf = mean(list.map((s) => s.scores.fun));
       assert.ok(mf >= 8.0, `${seg} fun ${mf}`);
     }
+    const general = bySeg.general || [];
+    const gCompletion = general.filter((s) => s.completed).length / general.length;
+    const gRec = mean(general.map((s) => s.scores.wouldRecommend));
+    assert.ok(gCompletion >= 0.98, `general completion ${gCompletion}`);
+    assert.ok(gRec >= 4.95, `general recommend ${gRec}`);
   });
 });

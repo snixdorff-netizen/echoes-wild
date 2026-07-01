@@ -251,6 +251,14 @@ export function scoreSessionRubric({
       wouldRecommend += 0.2;
     }
   }
+  if (features.activeSpeciesFilter && segment === 'general') {
+    clarity += 0.2;
+    fun += 0.1;
+  }
+  if (features.likelyMatchLabel && segment === 'general') {
+    clarity += 0.15;
+    wouldRecommend += 0.1;
+  }
   if (features.audioGate) {
     fun += 0.1;
     clarity += 0.2;
@@ -361,5 +369,7 @@ export function readShippedFeaturesFromHtml(html) {
     expeditionGate: html.includes('shouldCompleteExpedition') || html.includes('logged >= 6'),
     audioGate: html.includes('id="audio-gate"'),
     nearestCallerHint: html.includes('id="nearest-hint"'),
+    activeSpeciesFilter: html.includes('activeSpeciesForTime'),
+    likelyMatchLabel: html.includes('Most likely'),
   };
 }

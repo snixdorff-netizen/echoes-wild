@@ -18,7 +18,7 @@ export const SEGMENT_SCRIPTS = {
   naturalist: { listenRate: 0.9, idSkill: 0.92, dashChance: 0 },
   educator: { listenRate: 0.86, idSkill: 0.88, dashChance: 0 },
   gamer: { listenRate: 0.72, idSkill: 0.9, dashChance: 0.22 },
-  general: { listenRate: 0.76, idSkill: 0.84, dashChance: 0.06 },
+  general: { listenRate: 0.8, idSkill: 0.86, dashChance: 0.04 },
 };
 
 export class FieldSession {
@@ -263,15 +263,23 @@ export function pickSimIdentification({
   quality,
   skill = 0.8,
   features = {},
+  persona = 'liam',
+  timeOfDay,
   rng = Math.random,
 }) {
   let pCorrect = Math.min(0.94, idSkill * (0.38 + quality * 0.55));
   if (quality >= 0.58 && features.nearestCallerHint && skill >= 0.72) pCorrect += 0.1;
   if (quality >= 0.55 && features.personaHints && skill >= 0.75) pCorrect += 0.08;
   if (quality >= 0.62 && features.integrityToasts) pCorrect += 0.06;
-  pCorrect = Math.min(0.96, pCorrect);
+  if (quality >= 0.48 && features.likelyMatchLabel && persona === 'liam' && skill >= 0.78) pCorrect += 0.14;
+  if (features.activeSpeciesFilter && quality >= 0.45 && skill >= 0.78) pCorrect += 0.08;
+  pCorrect = Math.min(0.97, pCorrect);
   if (rng() < pCorrect) return dominantId;
-  const alts = animals.filter((a) => a.species.id !== dominantId);
+  let pool = animals;
+  if (features.activeSpeciesFilter && timeOfDay) {
+    pool = animals.filter((a) => a.activity.includes(timeOfDay));
+  }
+  const alts = pool.filter((a) => a.species.id !== dominantId);
   if (!alts.length) return dominantId;
   return alts[Math.floor(rng() * alts.length)].species.id;
 }

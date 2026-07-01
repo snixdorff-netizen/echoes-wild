@@ -113,10 +113,22 @@ const qualitySpread = {
   recordBudget: RECORD_BUDGET,
 };
 
+const segmentRecommendMin = {
+  general: 4.95,
+};
+const segmentCompletionMin = {
+  general: 0.98,
+};
+
 const passed =
   aggregate.meanFun >= thresholds.meanFunMin &&
   aggregate.meanWouldRecommend >= thresholds.meanWouldRecommendMin &&
-  Object.values(bySegment).every((s) => s.meanFun >= thresholds.segmentFunMin);
+  Object.values(bySegment).every((s) => s.meanFun >= thresholds.segmentFunMin) &&
+  Object.entries(bySegment).every(([key, s]) => {
+    if (segmentRecommendMin[key] != null && s.meanWouldRecommend < segmentRecommendMin[key]) return false;
+    if (segmentCompletionMin[key] != null && s.completionRate < segmentCompletionMin[key]) return false;
+    return true;
+  });
 
 const report = {
   generatedAt: new Date().toISOString(),

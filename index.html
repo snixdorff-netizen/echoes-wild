@@ -60,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4 — FieldSession engine. Hold L, record, identify. Tap Feedback when done.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4.1 — FieldSession engine. Hold L, record, identify. Tap Feedback when done.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -133,7 +133,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.4-jul2026';
+    const BUILD_VERSION = 'playtest-v1.4.1-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -548,6 +548,8 @@
       });
     }
 
+    /** FIELD_LOOP step 1 — explore habitat: movement + directional Listen (L / mouse / mobile)
+     *  feeds FieldSession.tick(); facing + distance shape capture quality in session.record(). */
     function update() {
       const now = performance.now();
       const dt = (now - lastFrame) / 16;
@@ -796,6 +798,7 @@
       requestAnimationFrame(gameLoop);
     }
 
+    /** FIELD_LOOP step 2 — Record clip: session.record() scores quality from facing + distance. */
     function recordClip() {
       updateStreak();
       ensureAudio();
@@ -811,6 +814,10 @@
       showIdentifyUI(clip);
     }
 
+    function activeSpeciesForTime(timeOfDay) {
+      return species.filter((sp) => sp.activity.includes(timeOfDay));
+    }
+
     function showIdentifyUI(clip) {
       const panel = document.getElementById('identify-panel');
       const opts = document.getElementById('identify-options');
@@ -823,18 +830,24 @@
       // Lightweight spectrogram visual (fake for education)
       drawSpectrogram(clip);
 
-      const sorted = species.slice().sort((a, b) => (a.id === clip.dominant.id ? -1 : b.id === clip.dominant.id ? 1 : 0));
+      const pool = activeSpeciesForTime(clip.timeOfDay);
+      const sorted = pool.slice().sort((a, b) => (a.id === clip.dominant.id ? -1 : b.id === clip.dominant.id ? 1 : 0));
+      const likelyThreshold = persona === 'liam' ? 0.48 : 0.52;
+      const hasLikelyMatch = clip.quality >= likelyThreshold;
       sorted.forEach(sp => {
         const b = document.createElement('button');
-        const isMatch = sp.id === clip.dominant.id && clip.quality >= 0.52;
+        const isMatch = sp.id === clip.dominant.id && clip.quality >= likelyThreshold;
+        const likelyTag = isMatch ? '<span class="text-[9px] text-emerald-300/90 ml-1">★ Most likely</span>' : '';
         b.className = 'species-btn px-3 py-2 text-xs rounded-2xl border bg-zinc-950 hover:border-emerald-400/60 text-left ' +
           (isMatch ? 'border-emerald-400/70 ring-1 ring-emerald-400/40' : 'border-white/10');
-        b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span><div class="text-[10px] text-white/50">${sp.fact}</div>`;
+        b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span>${likelyTag}<div class="text-[10px] text-white/50">${sp.fact}</div>`;
         b.onclick = () => submitIdentification(sp.id);
         opts.appendChild(b);
       });
       if (clip.quality < 0.55) {
         showToast('Tip: hold L, get closer, then record for a clearer spectrogram.', 'info');
+      } else if (persona === 'liam' && hasLikelyMatch) {
+        showToast('Fair clip — the highlighted card is your best match.', 'info');
       }
     }
 
@@ -864,6 +877,8 @@
       }
     }
 
+    /** FIELD_LOOP step 3 — identify species: session.identify() updates journal + integrity;
+     *  step 4 — at 6/6 logged, showExpeditionComplete() shares Field Report. */
     function submitIdentification(chosenId) {
       const panel = document.getElementById('identify-panel');
       const clip = currentClip;
@@ -880,6 +895,8 @@
         playCall(clip.dominant, 0.6, 0, 1);
         if (logged === 5) {
           showToast(`✓ ${clip.dominant.name} logged — one more for your Field Report!`, 'good');
+        } else if (logged === 4) {
+          showToast(`✓ ${clip.dominant.name} logged — final stretch: 2 more for Field Report!`, 'good');
         } else {
           showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
         }
@@ -1239,7 +1256,7 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      console.log('%c[ECHOES] Playtest v1.4 — FieldSession single source of truth.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.4.1 — FieldSession single source of truth.', 'color:#4ade80');
     }
 
     function updateStats() {

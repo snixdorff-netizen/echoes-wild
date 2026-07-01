@@ -72,6 +72,8 @@ export function driveFieldSession({
       quality: clip.quality,
       skill,
       features,
+      persona,
+      timeOfDay: session.gameState.timeOfDay,
       rng,
     });
     const outcome = session.identify(chosenId);
