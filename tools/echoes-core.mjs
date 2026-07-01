@@ -91,30 +91,91 @@ export function faceToward(player, target) {
   };
 }
 
-export function approachTarget(player, target, skill = 0.85) {
-  if (!target) return { ...player };
-  const p = { ...player };
-  const steps = Math.max(2, Math.round(3 + skill * 2));
-  for (let s = 0; s < steps; s++) {
-    const dx = target.x - p.x;
-    const dy = target.y - p.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 40) break;
-    const step = Math.min(30, dist - 36);
-    p.x += (dx / dist) * step;
-    p.y += (dy / dist) * step;
-  }
-  p.facing = Math.atan2(target.y - p.y, target.x - p.x);
-  return p;
+/** Mirrors index.html animal wander each update tick. */
+export function tickAnimals(animals, dt = 1) {
+  return animals.map((a) => {
+    const bobPhase = (a.bobPhase || 0) + 0.029 * dt;
+    return {
+      ...a,
+      bobPhase,
+      x: a.x + Math.sin(bobPhase * 0.65) * 0.38 * dt,
+      y: a.y + Math.cos(bobPhase * 0.48) * 0.27 * dt,
+    };
+  });
 }
 
-export function pickIdentificationChoice({ dominantId, animals, skill, quality, round, rng = Math.random }) {
-  if (quality < 0.48 && round === 0 && skill < 0.72) {
-    const alt = animals.find((a) => a.species.id !== dominantId);
-    return alt ? alt.species.id : dominantId;
-  }
-  if (quality >= 0.52 || skill >= 0.78) return dominantId;
-  return rng() < skill ? dominantId : animals.find((a) => a.species.id !== dominantId)?.species.id || dominantId;
+/** Mirrors index.html dash scare push on nearby animals. */
+export function applyDashScare(player, animals) {
+  return animals.map((a) => {
+    const dx = a.x - player.x;
+    const dy = a.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 120 && dist > 5) {
+      const push = (120 - dist) / 8;
+      return { ...a, x: a.x + (dx / dist) * push, y: a.y + (dy / dist) * push };
+    }
+    return { ...a };
+  });
+}
+
+/** Mirrors updateListenFacing when keyboard/mobile listen is held. */
+export function simulateListenFacing(player, animals, timeOfDay, listenActive) {
+  if (!listenActive) return { ...player };
+  const nearest = nearestActiveCaller(player, animals, timeOfDay);
+  if (!nearest.animal) return { ...player };
+  return {
+    ...player,
+    facing: Math.atan2(nearest.animal.y - player.y, nearest.animal.x - player.x),
+  };
+}
+
+/** One movement tick toward a chase target (WASD-style closing speed). */
+export function tickPlayerTowardTarget(player, target, skill = 0.85) {
+  if (!target) return { ...player };
+  const dx = target.x - player.x;
+  const dy = target.y - player.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 4) return { ...player };
+  const step = Math.min(2.0 + skill * 2.0, dist);
+  return {
+    ...player,
+    x: player.x + (dx / dist) * step,
+    y: player.y + (dy / dist) * step,
+  };
+}
+
+export function chooseActiveTime(animals, preferred) {
+  if (animals.filter((a) => a.activity.includes(preferred)).length >= 3) return preferred;
+  return TIME_ORDER.find((t) => animals.filter((a) => a.activity.includes(t)).length >= 3) || preferred;
+}
+
+const LISTEN_RATE = {
+  naturalist: 0.9,
+  educator: 0.86,
+  gamer: 0.72,
+  general: 0.74,
+};
+
+const TICKS_PER_ATTEMPT = {
+  naturalist: 50,
+  educator: 46,
+  gamer: 40,
+  general: 44,
+};
+
+const MAX_ATTEMPTS_BY_SEGMENT = {
+  naturalist: 11,
+  educator: 12,
+  gamer: 13,
+  general: 15,
+};
+
+export function pickIdentificationChoice({ dominantId, animals, skill, quality, rng = Math.random }) {
+  const pCorrect = Math.min(0.96, skill * (0.38 + quality * 0.58));
+  if (rng() < pCorrect) return dominantId;
+  const alts = animals.filter((a) => a.species.id !== dominantId);
+  if (!alts.length) return dominantId;
+  return alts[Math.floor(rng() * alts.length)].species.id;
 }
 
 export function qualityLabel(quality) {
@@ -198,7 +259,10 @@ export function initAnimals(habitat = 'forest') {
   });
 }
 
-/** Scripted session using real move → listen → face → record → identify helpers. */
+/**
+ * Tick-based field session: bob wander, listen facing, optional dash scare,
+ * variable clip quality, probabilistic ID card picks, extra attempts on misses.
+ */
 export function runPlayerSession({
   segment,
   persona,
@@ -209,7 +273,7 @@ export function runPlayerSession({
   features = {},
   rng = Math.random,
 }) {
-  const animals = initAnimals(habitat);
+  let animals = initAnimals(habitat).map((a, i) => ({ ...a, bobPhase: i * 0.6 }));
   const friction = [];
   const delights = [];
   let logged = 0;
@@ -222,65 +286,95 @@ export function runPlayerSession({
   if (features.nearestCallerHint) delights.push('nearest_caller_compass');
   if (features.audioGate) delights.push('audio_unlock_gate');
 
-  let tod = timeOfDay;
-  const activeAtTime = animals.filter((a) => a.activity.includes(tod));
-  if (activeAtTime.length < 3) {
-    const fallback = TIME_ORDER.find((t) => animals.filter((a) => a.activity.includes(t)).length >= 3);
-    if (fallback) tod = fallback;
-  }
-
-  const roundTargets = animals.filter((a) => a.activity.includes(tod));
-  const targets = roundTargets.length >= 6
-    ? roundTargets.slice(0, 6)
-    : [...roundTargets, ...animals].slice(0, 6);
-
+  const tod = chooseActiveTime(animals, timeOfDay);
   let player = { x: 440, y: 310, facing: 0, listenActive: false };
-  let firstRecQuality = 0;
+  let firstRecQuality = null;
+  let listenTicksTotal = 0;
   let anyListen = false;
+  let attempts = 0;
+  const maxAttempts = MAX_ATTEMPTS_BY_SEGMENT[segment] + (usesMobileHud ? 2 : 0) + Math.floor(skill * 2);
+  const ticksPerAttempt = TICKS_PER_ATTEMPT[segment];
 
-  for (let i = 0; i < 6; i++) {
-    const target = targets[i % targets.length];
-    player = approachTarget(player, target, skill);
-    player.listenActive = usesMobileHud || skill > 0.38;
-    anyListen = anyListen || player.listenActive;
-    player = faceToward(player, target);
+  while (logged < 6 && attempts < maxAttempts) {
+    attempts++;
+    let listenTicksAttempt = 0;
+    let dashedAttempt = false;
+    let chase = nearestActiveCaller(player, animals, tod).animal;
 
-    if (segment === 'gamer' && i === 2 && rng() < 0.12) {
-      player.x += 55;
-      player.y += 30;
-      friction.push('dash_scared_caller');
+    for (let tick = 0; tick < ticksPerAttempt; tick++) {
+      animals = tickAnimals(animals);
+      chase = nearestActiveCaller(player, animals, tod).animal || chase;
+
+      const listenBase = LISTEN_RATE[segment] * skill + (usesMobileHud ? 0.14 : 0) + (features.nearestCallerHint ? 0.06 : 0);
+      const impatientRecord = segment === 'general' && tick > ticksPerAttempt - 6 && rng() < 0.28;
+      player.listenActive = !impatientRecord && rng() < listenBase;
+      if (player.listenActive) {
+        listenTicksAttempt++;
+        listenTicksTotal++;
+        anyListen = true;
+      }
+
+      player = tickPlayerTowardTarget(player, chase, skill);
+      player = simulateListenFacing(player, animals, tod, player.listenActive);
+
+      if (segment === 'gamer' && !dashedAttempt && tick === Math.floor(ticksPerAttempt * 0.5) && rng() < 0.24) {
+        dashedAttempt = true;
+        const boost = 6 + skill * 4;
+        player.x += Math.cos(player.facing || 0) * boost;
+        player.y += Math.sin(player.facing || 0) * boost;
+        animals = applyDashScare(player, animals);
+        friction.push('dash_scared_caller');
+        chase = nearestActiveCaller(player, animals, tod).animal || chase;
+      }
+    }
+
+    if (listenTicksAttempt < 10) {
+      friction.push(attempts === 1 ? 'noisy_first_recording' : 'recorded_without_listen');
+      player.listenActive = false;
     }
 
     const clip = selectRecordingTarget(player, animals, tod);
     const dominant = clip.dominant || clip.best;
-    if (i === 0) firstRecQuality = clip.quality;
+    const listenFrac = listenTicksAttempt / ticksPerAttempt;
+    let effectiveQuality = clip.quality * (0.48 + Math.min(1, listenFrac * 1.15) * 0.52);
+    if (dashedAttempt) effectiveQuality *= 0.86;
+    const distToDominant = Math.hypot(dominant.x - player.x, dominant.y - player.y);
+    if (distToDominant > 90) effectiveQuality *= 0.78;
+    effectiveQuality = Math.max(0.35, Math.min(1, effectiveQuality));
 
-    if (clip.quality <= 0.55) friction.push(i === 0 ? 'noisy_first_recording' : 'noisy_recording');
-    if (i === 0 && clip.quality > 0.68 && player.listenActive) delights.push('cone_aha_moment');
+    if (firstRecQuality === null) firstRecQuality = effectiveQuality;
+
+    if (effectiveQuality <= 0.55) friction.push('noisy_recording');
+    if (attempts === 1 && effectiveQuality > 0.62 && listenTicksAttempt >= 10) delights.push('cone_aha_moment');
 
     const chosenId = pickIdentificationChoice({
       dominantId: dominant.species.id,
       animals,
       skill,
-      quality: clip.quality,
-      round: i,
+      quality: effectiveQuality,
       rng,
     });
     const outcome = applyIdentification({
       chosenId,
       dominantId: dominant.species.id,
-      quality: clip.quality,
+      quality: effectiveQuality,
       logged,
       integrity,
     });
     logged = outcome.logged;
     integrity = outcome.integrity;
-    journal.push({ species: dominant.species.id, correct: outcome.correct, quality: clip.quality });
+    journal.push({
+      species: dominant.species.id,
+      correct: outcome.correct,
+      quality: effectiveQuality,
+      rawQuality: clip.quality,
+      attempt: attempts,
+    });
 
-    if (outcome.correct && features.integrityToasts && i === 0) delights.push('first_species_logged');
+    if (outcome.correct && features.integrityToasts && logged === 1) delights.push('first_species_logged');
     if (!outcome.correct) {
       if (!features.integrityToasts) friction.push('opaque_integrity_penalty');
-      if (segment === 'general' && features.nearestCallerHint) friction.push('id_confusion_recovered');
+      friction.push('id_card_miss');
     }
   }
 
@@ -307,7 +401,7 @@ export function runPlayerSession({
     delights,
     features,
     journal,
-    recQuality: firstRecQuality,
+    recQuality: firstRecQuality ?? 0.5,
     listenActive: anyListen,
   });
 
@@ -322,6 +416,8 @@ export function runPlayerSession({
     friction,
     delights,
     journal,
+    attempts,
+    listenTicksTotal,
     scores,
   };
 }
@@ -420,8 +516,15 @@ export function scoreSessionRubric({
     }
     if (f === 'noisy_first_recording') clarity -= 0.15;
     if (f === 'noisy_recording') clarity -= 0.08;
-    if (f === 'dash_scared_caller' && segment === 'gamer') fun += 0.15;
-    if (f === 'id_confusion_recovered' && completed) clarity += 0.1;
+    if (f === 'recorded_without_listen') {
+      clarity -= segment === 'general' ? 0.2 : 0.12;
+      fun -= 0.1;
+    }
+    if (f === 'dash_scared_caller') {
+      if (segment === 'gamer') fun += 0.12;
+      else clarity -= 0.1;
+    }
+    if (f === 'id_card_miss' && completed) clarity += 0.05;
   }
 
   if (segment === 'naturalist' && delights.includes('field_report_share')) wouldRecommend += 0.25;

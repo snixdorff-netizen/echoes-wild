@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Browser launch verification for ECHOES index.html
+ * Browser launch verification for ECHOES index.html — real UI input path.
  */
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,15 +18,15 @@ mkdirSync(scratch, { recursive: true });
 const html = readFileSync(join(root, 'index.html'), 'utf8');
 
 function staticChecks() {
-  const checks = {
+  return {
     parsesScriptBlock: html.includes('function recordClip') && html.includes('function submitIdentification'),
     echoesCoreLoaded: html.includes('echoes-core.browser.js'),
     mobileHud: html.includes('id="mobile-hud"'),
     personaSelect: html.includes('id="persona"'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
+    debugStateHook: html.includes('getEchoesDebugState'),
   };
-  return checks;
 }
 
 async function tryPlaywright() {
@@ -59,32 +59,44 @@ async function tryPlaywright() {
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
+
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'networkidle' });
   await page.evaluate(() => {
     localStorage.setItem('echoes-onboarding-v1', '1');
     localStorage.setItem('echoes-playtest-seen-help', '1');
-    const ob = document.getElementById('onboard');
-    if (ob) ob.classList.add('hidden');
-    const hm = document.getElementById('help-modal');
-    if (hm) hm.classList.add('hidden');
-    if (typeof showAudioGateIfNeeded === 'function') showAudioGateIfNeeded();
   });
-  await page.evaluate(() => {
-    if (typeof unlockAudio === 'function') unlockAudio();
-  });
-  await page.waitForTimeout(500);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1100);
+
+  let gateClicked = false;
+  try {
+    const gateBtn = page.locator('#audio-gate:not(.hidden) button');
+    await gateBtn.waitFor({ state: 'visible', timeout: 4000 });
+    await gateBtn.click();
+    gateClicked = true;
+  } catch (e) {
+    errors.push('audio-gate click failed: ' + e.message);
+  }
+  await page.waitForTimeout(400);
+
   const dims = await page.evaluate(() => {
     const c = document.getElementById('game');
     return { w: c.width, h: c.height, clientW: c.clientWidth };
   });
-  await page.evaluate(() => {
-    if (typeof recordClip === 'function') recordClip();
-  });
-  await page.waitForTimeout(300);
+
+  const facingBefore = await page.evaluate(() => window.getEchoesDebugState().facing);
+  await page.keyboard.down('l');
+  await page.waitForTimeout(700);
+  const listenState = await page.evaluate(() => window.getEchoesDebugState());
+  await page.keyboard.up('l');
+
+  await page.keyboard.press('r');
+  await page.waitForTimeout(350);
   const identifyVisible = await page.evaluate(() => {
     const p = document.getElementById('identify-panel');
     return p && !p.classList.contains('hidden');
   });
+
   const painted = await page.evaluate(() => {
     const c = document.getElementById('game');
     const ctx = c.getContext('2d');
@@ -95,40 +107,68 @@ async function tryPlaywright() {
     }
     return nonzero;
   });
+
   await page.screenshot({ path: join(scratch, 'launch.png'), fullPage: false });
   await browser.close();
   server.close();
-  return { errors, dims, identifyVisible, painted };
+
+  const facingChanged = Math.abs(listenState.facing - facingBefore) > 0.05;
+  return {
+    errors,
+    dims,
+    identifyVisible,
+    painted,
+    gateClicked,
+    listenActiveDuringL: listenState.listenActive,
+    facingChanged,
+    facingBefore,
+    facingAfter: listenState.facing,
+  };
 }
 
 async function main() {
   const checks = staticChecks();
   const log = ['ECHOES browser verification', 'static: ' + JSON.stringify(checks, null, 2)];
+  const fallbackPath = join(scratch, 'launch-fallback.log');
+
   let pw;
   try {
     pw = await tryPlaywright();
   } catch (e) {
     log.push('playwright error: ' + e.message);
   }
+
   if (!pw) {
-    const fallback = join(scratch, 'launch-fallback.log');
     log.push('playwright unavailable — static checks only');
-    writeFileSync(fallback, log.join('\n'));
+    writeFileSync(fallbackPath, log.join('\n'));
     console.log(log.join('\n'));
-    const ok = Object.values(checks).every(Boolean);
-    process.exit(ok ? 0 : 1);
+    process.exit(Object.values(checks).every(Boolean) ? 0 : 1);
   }
+
+  try {
+    unlinkSync(fallbackPath);
+  } catch {
+    /* no stale fallback */
+  }
+
   log.push('playwright dims: ' + JSON.stringify(pw.dims));
-  log.push('identify panel after recordClip: ' + pw.identifyVisible);
+  log.push('audio gate clicked: ' + pw.gateClicked);
+  log.push('listen active during L: ' + pw.listenActiveDuringL);
+  log.push('facing changed with L held: ' + pw.facingChanged + ' (' + pw.facingBefore.toFixed(3) + ' -> ' + pw.facingAfter.toFixed(3) + ')');
+  log.push('identify panel after KeyR: ' + pw.identifyVisible);
   log.push('nonzero pixels: ' + pw.painted);
   log.push('page errors: ' + (pw.errors.length ? pw.errors.join('; ') : 'none'));
   log.push('screenshot: ' + join(scratch, 'launch.png'));
   writeFileSync(join(scratch, 'browser-verify.log'), log.join('\n'));
   console.log(log.join('\n'));
+
   const ok =
     pw.errors.length === 0 &&
     pw.dims.w === 880 &&
     pw.dims.h === 620 &&
+    pw.gateClicked &&
+    pw.listenActiveDuringL &&
+    pw.facingChanged &&
     pw.identifyVisible &&
     pw.painted > 1000 &&
     Object.values(checks).every(Boolean);

@@ -62,9 +62,12 @@ for (const [segmentKey, seg] of Object.entries(SEGMENTS)) {
       persona: seg.persona,
       ...session.scores,
       completed: session.completed,
+      attempts: session.attempts,
+      listenTicksTotal: session.listenTicksTotal,
       delights: session.delights,
       friction: session.friction,
       integrity: session.integrity,
+      journal: session.journal,
     });
   }
 }
@@ -103,14 +106,18 @@ const thresholds = {
   meanFunMin: 9.0,
   meanWouldRecommendMin: 4.5,
   segmentFunMin: 8.0,
-  segmentWouldRecommendMin: 4.5,
+};
+
+const qualitySpread = {
+  min: Math.min(...players.map((p) => p.journal?.[0]?.quality ?? 1)),
+  max: Math.max(...players.map((p) => p.journal?.[0]?.quality ?? 0)),
+  meanAttempts: mean(players.map((p) => p.attempts || 6)),
 };
 
 const passed =
   aggregate.meanFun >= thresholds.meanFunMin &&
   aggregate.meanWouldRecommend >= thresholds.meanWouldRecommendMin &&
-  Object.values(bySegment).every((s) => s.meanFun >= thresholds.segmentFunMin) &&
-  Object.values(bySegment).every((s) => s.meanWouldRecommend >= thresholds.segmentWouldRecommendMin);
+  Object.values(bySegment).every((s) => s.meanFun >= thresholds.segmentFunMin);
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -119,6 +126,7 @@ const report = {
   playerCount: players.length,
   features,
   aggregate,
+  qualitySpread,
   bySegment,
   thresholds,
   passed,

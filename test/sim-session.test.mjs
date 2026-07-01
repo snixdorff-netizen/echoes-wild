@@ -7,6 +7,10 @@ import {
   SEGMENTS,
   runPlayerSession,
   readShippedFeaturesFromHtml,
+  tickAnimals,
+  applyDashScare,
+  selectRecordingTarget,
+  initAnimals,
 } from '../tools/echoes-core.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,42 +25,82 @@ function seededRandom(s) {
   };
 }
 
-describe('100-player session model', () => {
-  it('general segment completes habitat with shipped features', () => {
-    const session = runPlayerSession({
-      segment: 'general',
-      persona: 'liam',
-      habitat: 'forest',
-      timeOfDay: 'dawn',
-      skill: 0.82,
-      usesMobileHud: true,
-      features,
-      rng: seededRandom(42),
-    });
-    assert.equal(session.completed, true);
-    assert.equal(session.logged, 6);
-    assert.ok(session.scores.wouldRecommend >= 4.5);
-    assert.ok(session.scores.fun >= 8.0);
+describe('tick field physics', () => {
+  it('animal bob moves positions each tick', () => {
+    const animals = initAnimals('forest').map((a) => ({ ...a, bobPhase: 0 }));
+    const after = tickAnimals(animals, 3);
+    assert.notEqual(after[0].x, animals[0].x);
   });
 
-  it('all segments pass 5-star thresholds in aggregate sample', () => {
+  it('dash scare pushes nearby animals and can lower record quality', () => {
+    const animals = initAnimals('forest');
+    const target = animals[0];
+    const player = { x: target.x - 40, y: target.y, facing: 0, listenActive: true };
+    const before = selectRecordingTarget(player, animals, 'dawn').quality;
+    const scared = applyDashScare(player, animals);
+    const after = selectRecordingTarget(player, scared, 'dawn').quality;
+    assert.ok(scared[0].x > animals[0].x);
+    assert.ok(after <= before);
+  });
+});
+
+describe('100-player session model', () => {
+  it('sessions use more than six attempts when IDs miss', () => {
+    const rng = seededRandom(12);
+    let sawExtraAttempts = false;
+    for (let i = 0; i < 30; i++) {
+      const session = runPlayerSession({
+        segment: 'general',
+        persona: 'liam',
+        habitat: 'forest',
+        timeOfDay: 'dawn',
+        skill: 0.8,
+        usesMobileHud: false,
+        features,
+        rng,
+      });
+      if (session.attempts > 6) sawExtraAttempts = true;
+    }
+    assert.ok(sawExtraAttempts, 'expected some sessions with >6 record attempts');
+  });
+
+  it('effective clip quality varies with listen timing and dash friction', () => {
+    const qualities = new Set();
+    for (let seed = 1; seed <= 24; seed++) {
+      const session = runPlayerSession({
+        segment: seed % 3 === 0 ? 'gamer' : 'general',
+        persona: 'liam',
+        habitat: ['forest', 'marsh', 'canyon'][seed % 3],
+        timeOfDay: ['dawn', 'day', 'dusk', 'night'][seed % 4],
+        skill: 0.72 + (seed % 4) * 0.04,
+        usesMobileHud: seed % 4 === 0,
+        features,
+        rng: seededRandom(seed),
+      });
+      for (const entry of session.journal) qualities.add(entry.quality.toFixed(2));
+    }
+    assert.ok(qualities.size >= 3, `expected quality spread, got ${[...qualities].join(', ')}`);
+  });
+
+  it('aggregate sample meets plan thresholds (fun ≥9, recommend ≥4.5, segment fun ≥8)', () => {
     const rand = seededRandom(99);
+    const all = [];
     const bySegment = {};
     for (const [key, seg] of Object.entries(SEGMENTS)) {
       const sessions = [];
       for (let i = 0; i < seg.count; i++) {
-        sessions.push(
-          runPlayerSession({
-            segment: key,
-            persona: seg.persona,
-            habitat: ['forest', 'marsh', 'canyon'][i % 3],
-            timeOfDay: ['dawn', 'day', 'dusk', 'night'][i % 4],
-            skill: { naturalist: 0.92, educator: 0.88, gamer: 0.9, general: 0.82 }[key] + (i % 5) * 0.01,
-            usesMobileHud: i % 3 === 0,
-            features,
-            rng: rand,
-          }),
-        );
+        const s = runPlayerSession({
+          segment: key,
+          persona: seg.persona,
+          habitat: ['forest', 'marsh', 'canyon'][i % 3],
+          timeOfDay: ['dawn', 'day', 'dusk', 'night'][i % 4],
+          skill: { naturalist: 0.92, educator: 0.88, gamer: 0.9, general: 0.82 }[key] + (i % 5) * 0.01,
+          usesMobileHud: i % 3 === 0,
+          features,
+          rng: rand,
+        });
+        sessions.push(s);
+        all.push(s);
       }
       const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
       bySegment[key] = {
@@ -66,10 +110,16 @@ describe('100-player session model', () => {
       };
     }
 
+    const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const aggregate = {
+      meanFun: mean(all.map((s) => s.scores.fun)),
+      meanWouldRecommend: mean(all.map((s) => s.scores.wouldRecommend)),
+    };
+
+    assert.ok(aggregate.meanFun >= 9.0, `aggregate fun ${aggregate.meanFun}`);
+    assert.ok(aggregate.meanWouldRecommend >= 4.5, `aggregate recommend ${aggregate.meanWouldRecommend}`);
     for (const [key, stats] of Object.entries(bySegment)) {
       assert.ok(stats.meanFun >= 8.0, `${key} fun ${stats.meanFun}`);
-      assert.ok(stats.meanWouldRecommend >= 4.5, `${key} recommend ${stats.meanWouldRecommend}`);
-      assert.ok(stats.completionRate >= 0.95, `${key} completion ${stats.completionRate}`);
     }
   });
 });

@@ -15,6 +15,9 @@ import {
   selectRecordingTarget,
   facingBonusFromDiff,
   nearestActiveCaller,
+  tickAnimals,
+  applyDashScare,
+  simulateListenFacing,
   qualityLabel,
   integrityGain,
   integrityLoss,
@@ -44,6 +47,9 @@ const body = `/* eslint-disable */
   ${fnSource(selectRecordingTarget)}
   ${fnSource(facingBonusFromDiff)}
   ${fnSource(nearestActiveCaller)}
+  ${fnSource(tickAnimals)}
+  ${fnSource(applyDashScare)}
+  ${fnSource(simulateListenFacing)}
   ${fnSource(qualityLabel)}
   ${fnSource(integrityGain)}
   ${fnSource(integrityLoss)}
@@ -62,6 +68,9 @@ const body = `/* eslint-disable */
     selectRecordingTarget: selectRecordingTarget,
     facingBonusFromDiff: facingBonusFromDiff,
     nearestActiveCaller: nearestActiveCaller,
+    tickAnimals: tickAnimals,
+    applyDashScare: applyDashScare,
+    simulateListenFacing: simulateListenFacing,
     qualityLabel: qualityLabel,
     integrityGain: integrityGain,
     integrityLoss: integrityLoss,

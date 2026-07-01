@@ -1,9 +1,14 @@
 # ECHOES Wildlife Acoustics – 20-Person Playtest Kit
 
-**Version**: Playtest v1.3 (July 2026)
+**Version**: Playtest v1.3.1 (July 2026)
 **Live link (send this)**: https://snixdorff-netizen.github.io/echoes-wild/  
 **Game file**: `index.html` (single self-contained HTML — also works offline)  
 **Goal of test**: Validate fun, education value, usability, viral potential, and retention hooks with real users before further development or Unity port.
+
+### v1.3.1 changes (tick sim + real browser input verify)
+- Tick-based player sim mirrors animal bob, listen facing, dash scare, variable effective quality
+- Browser verify uses audio-gate click + KeyL auto-aim + KeyR record (no evaluate shortcuts)
+- 19 unit tests including quality spread and >6 attempt sessions
 
 ### v1.3 changes (5-star simulation verified)
 - Unified browser + Node core via `build-browser-core.mjs` (parity tests)

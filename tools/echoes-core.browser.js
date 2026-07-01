@@ -58,6 +58,38 @@
   }
   return { animal, distance };
 }
+  function tickAnimals(animals, dt = 1) {
+  return animals.map((a) => {
+    const bobPhase = (a.bobPhase || 0) + 0.029 * dt;
+    return {
+      ...a,
+      bobPhase,
+      x: a.x + Math.sin(bobPhase * 0.65) * 0.38 * dt,
+      y: a.y + Math.cos(bobPhase * 0.48) * 0.27 * dt,
+    };
+  });
+}
+  function applyDashScare(player, animals) {
+  return animals.map((a) => {
+    const dx = a.x - player.x;
+    const dy = a.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 120 && dist > 5) {
+      const push = (120 - dist) / 8;
+      return { ...a, x: a.x + (dx / dist) * push, y: a.y + (dy / dist) * push };
+    }
+    return { ...a };
+  });
+}
+  function simulateListenFacing(player, animals, timeOfDay, listenActive) {
+  if (!listenActive) return { ...player };
+  const nearest = nearestActiveCaller(player, animals, timeOfDay);
+  if (!nearest.animal) return { ...player };
+  return {
+    ...player,
+    facing: Math.atan2(nearest.animal.y - player.y, nearest.animal.x - player.x),
+  };
+}
   function qualityLabel(quality) {
   if (quality > 0.8) return 'CLEAN';
   if (quality > 0.55) return 'FAIR';
@@ -128,6 +160,9 @@
     selectRecordingTarget: selectRecordingTarget,
     facingBonusFromDiff: facingBonusFromDiff,
     nearestActiveCaller: nearestActiveCaller,
+    tickAnimals: tickAnimals,
+    applyDashScare: applyDashScare,
+    simulateListenFacing: simulateListenFacing,
     qualityLabel: qualityLabel,
     integrityGain: integrityGain,
     integrityLoss: integrityLoss,

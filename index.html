@@ -60,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.3 — hold L to auto-aim nearest caller. Tap Feedback when done.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.3.1 — hold L to auto-aim nearest caller. Tap Feedback when done.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -113,7 +113,7 @@
           <li>Complete 6/6 in a habitat for a special Field Report you can share</li>
         </ul>
         <p class="text-[10px]">For this playtest: Try to complete at least one full habitat. Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.3 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.3.1 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
       </div>
     </div>
   </div>
@@ -133,7 +133,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.3-jul2026';
+    const BUILD_VERSION = 'playtest-v1.3.1-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -268,7 +268,7 @@
     const ONBOARD_STEPS = [
       { title: 'Listen like a field biologist', body: 'Move with WASD or tap the canvas. Hold Listen (L, touch 🎧, or mouse) — L auto-aims the nearest caller; animals get louder when you face them.' },
       { title: 'Record and identify', body: 'While listening, press Record (R or ⏺). Pick the species from the cards — the mini spectrogram hints at call shape (bat FM sweeps, bird whistles, frog peeps).' },
-      { title: 'Complete + share', body: 'Log all 6 species in a habitat, copy your Field Report, then try Marsh or Canyon. Hit Feedback when your session ends — that data shapes v1.2.' }
+      { title: 'Complete + share', body: 'Log all 6 species in a habitat, copy your Field Report, then try Marsh or Canyon. Hit Feedback when your session ends — that data shapes the next playtest.' }
     ];
 
     function renderOnboarding() {
@@ -1345,7 +1345,11 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      console.log('%c[ECHOES] Playtest v1.2 — core module, nearest-caller hint, audio gate, 5-star sim target.', 'color:#4ade80');
+      window.getEchoesDebugState = function () {
+        return { facing: player.facing, x: player.x, y: player.y, listenActive, logged };
+      };
+
+      console.log('%c[ECHOES] Playtest v1.3.1 — tick sim, keyboard listen auto-aim, real browser verify.', 'color:#4ade80');
     }
 
     function updateStats() {
