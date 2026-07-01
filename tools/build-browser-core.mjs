@@ -32,6 +32,8 @@ import {
   activeSpeciesForTime,
   likelyMatchThreshold,
   buildIdentifyOptions,
+  buildSpectrogramPeaks,
+  SPECIES_FREQ_PROFILES,
   simIdentificationBonus,
 } from './echoes-core.mjs';
 import { FieldSession } from './field-session.mjs';
@@ -69,6 +71,7 @@ const body = `/* eslint-disable */
   const HABITATS = ${JSON.stringify(HABITATS)};
   const PERSONAS = ${JSON.stringify(PERSONAS)};
   const SPECIES = ${JSON.stringify(SPECIES)};
+  const SPECIES_FREQ_PROFILES = ${JSON.stringify(SPECIES_FREQ_PROFILES)};
   const TIME_ORDER = ${JSON.stringify(TIME_ORDER)};
   const FACING_BONUS_THRESHOLD = ${FACING_BONUS_THRESHOLD};
 
@@ -93,6 +96,7 @@ const body = `/* eslint-disable */
   ${fnSource(activeSpeciesForTime)}
   ${fnSource(likelyMatchThreshold)}
   ${fnSource(buildIdentifyOptions)}
+  ${fnSource(buildSpectrogramPeaks)}
   ${fnSource(simIdentificationBonus)}
 
   ${fieldSessionSrc}
@@ -124,6 +128,8 @@ const body = `/* eslint-disable */
     activeSpeciesForTime: activeSpeciesForTime,
     likelyMatchThreshold: likelyMatchThreshold,
     buildIdentifyOptions: buildIdentifyOptions,
+    buildSpectrogramPeaks: buildSpectrogramPeaks,
+    SPECIES_FREQ_PROFILES: SPECIES_FREQ_PROFILES,
     simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };

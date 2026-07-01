@@ -23,6 +23,8 @@ export function driveFieldSession({
 }) {
   const script = { ...SEGMENT_SCRIPTS[segment], skill };
   if (features.dashDisabled) script.dashChance = 0;
+  if (features.interactiveSpectrogram) script.idSkill *= 1.1;
+  if (features.vectorSpeciesArt) script.idSkill *= 1.04;
   const session = new FieldSession({
     habitat,
     timeOfDay,

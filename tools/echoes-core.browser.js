@@ -4,6 +4,7 @@
   const HABITATS = ["forest","marsh","canyon"];
   const PERSONAS = ["liam","aisha","marcus","elena"];
   const SPECIES = [{"id":"cardinal","name":"Northern Cardinal","activity":["dawn","day"]},{"id":"owl","name":"Barred Owl","activity":["dusk","night"]},{"id":"peeper","name":"Spring Peeper","activity":["dawn","night"]},{"id":"cricket","name":"Tree Cricket","activity":["dusk","night"]},{"id":"woodpecker","name":"Pileated Woodpecker","activity":["day"]},{"id":"bat","name":"Big Brown Bat","activity":["dusk","night"]}];
+  const SPECIES_FREQ_PROFILES = {"cardinal":{"peaks":[0.28,0.45,0.62],"label":"Whistle band"},"owl":{"peaks":[0.18,0.35],"label":"Low hoot"},"peeper":{"peaks":[0.72,0.82],"label":"High peep"},"cricket":{"peaks":[0.65,0.78],"label":"Chirp rhythm"},"woodpecker":{"peaks":[0.22,0.38,0.52,0.68],"label":"Drum bursts"},"bat":{"peaks":[0.55,0.7],"label":"FM sweep","fm":true}};
   const TIME_ORDER = ["dawn","day","dusk","night"];
   const FACING_BONUS_THRESHOLD = 1.2;
 
@@ -201,6 +202,19 @@
       isLikely: sp.id === clip.dominant.id && clip.quality >= threshold,
     }));
 }
+  function buildSpectrogramPeaks(clip) {
+  const profile = SPECIES_FREQ_PROFILES[clip.dominant?.id] || { peaks: [0.5], label: 'Call band' };
+  const q = clip.quality ?? 0.5;
+  const jitter = (1 - q) * 0.05;
+  return profile.peaks.map((x, i) => ({
+    xNorm: Math.max(0.08, Math.min(0.92, x + Math.sin(i * 1.7) * jitter)),
+    height: 0.32 + q * 0.42 + (i === 0 ? 0.18 : 0.06),
+    isKey: i === 0,
+    speciesId: clip.dominant.id,
+    label: profile.label,
+    fm: !!profile.fm,
+  }));
+}
   function simIdentificationBonus({ features, persona, quality, skill }) {
   let bonus = 0;
   const threshold = likelyMatchThreshold(persona);
@@ -212,6 +226,8 @@
   }
   if (features.activeSpeciesFilter && quality >= 0.45 && skill >= 0.78) bonus += 0.08;
   if (skill >= 0.9 && quality >= 0.5 && features.likelyMatchLabel) bonus += 0.06;
+  if (features.interactiveSpectrogram && quality >= 0.48 && skill >= 0.65) bonus += 0.14;
+  if (features.vectorSpeciesArt && skill >= 0.6) bonus += 0.05;
   return bonus;
 }
 
@@ -471,6 +487,8 @@
     activeSpeciesForTime: activeSpeciesForTime,
     likelyMatchThreshold: likelyMatchThreshold,
     buildIdentifyOptions: buildIdentifyOptions,
+    buildSpectrogramPeaks: buildSpectrogramPeaks,
+    SPECIES_FREQ_PROFILES: SPECIES_FREQ_PROFILES,
     simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };

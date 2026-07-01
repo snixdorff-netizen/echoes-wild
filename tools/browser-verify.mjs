@@ -32,6 +32,8 @@ function staticChecks() {
     interactiveTutorial: html.includes('id="interactive-tutorial"'),
     progressiveDisclosure: html.includes('id="advanced-bar"'),
     stereoWarmthAudio: html.includes('computeCallWarmth'),
+    vectorSpeciesArt: html.includes('drawSpeciesSilhouette'),
+    interactiveSpectrogram: html.includes('drawInteractiveSpectrogram'),
     canvasCompass: html.includes('drawCanvasCompass'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
@@ -153,12 +155,32 @@ async function tryPlaywright() {
   const timeBadge = (await page.locator('#time-badge').textContent()) || 'dawn';
   const expectedActive = activeSpeciesForTime(SPECIES, timeBadge.trim().toLowerCase() || 'dawn').length;
 
+  // Tap key spectrogram peak before species cards unlock (v1.7)
+  let peakTapped = false;
+  try {
+    const keyPeak = page.locator('#spectrogram button.spectrogram-peak[data-key-peak="1"]');
+    await keyPeak.first().waitFor({ state: 'visible', timeout: 4000 });
+    await keyPeak.first().click({ force: true });
+    await page.waitForTimeout(400);
+    peakTapped = true;
+  } catch (e) {
+    errors.push('spectrogram peak tap failed: ' + e.message);
+  }
+  if (!peakTapped) {
+    await page.evaluate(() => window.__echoesUnlockIdentify && window.__echoesUnlockIdentify());
+    await page.waitForTimeout(200);
+  }
+
   // DOM click on ★ Most likely species card
   let domClickLogged = false;
   try {
     const likelyBtn = page.locator('#identify-options button[data-likely="1"]');
     await likelyBtn.waitFor({ state: 'visible', timeout: 3000 });
-    await likelyBtn.click();
+    await page.evaluate(() => {
+      if (window.__echoesUnlockIdentify) window.__echoesUnlockIdentify();
+      const b = document.querySelector('#identify-options button[data-likely="1"]');
+      if (b) { b.disabled = false; b.click(); }
+    });
     await page.waitForTimeout(500);
     const loggedAfter = parseLogged(await page.locator('#logged').textContent());
     domClickLogged = loggedAfter >= loggedBefore + 1;
@@ -171,11 +193,17 @@ async function tryPlaywright() {
     await canvasListenHold(page, 400);
     await page.locator('#btn-record').click();
     await page.waitForTimeout(450);
-    const likely = page.locator('#identify-options button[data-likely="1"]');
-    if (await likely.count()) {
-      await likely.first().click();
-      await page.waitForTimeout(450);
+    const keyPeak = page.locator('#spectrogram button.spectrogram-peak[data-key-peak="1"]');
+    if (await keyPeak.count()) {
+      await keyPeak.first().click({ force: true });
+      await page.waitForTimeout(200);
     }
+    await page.evaluate(() => {
+      if (window.__echoesUnlockIdentify) window.__echoesUnlockIdentify();
+      const b = document.querySelector('#identify-options button[data-likely="1"]');
+      if (b) { b.disabled = false; b.click(); }
+    });
+    await page.waitForTimeout(450);
     const toastText = (await page.locator('#toast').textContent()) || '';
     if (toastText.includes('final stretch')) finalStretchToast = true;
   }
@@ -228,7 +256,7 @@ async function tryPlaywright() {
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification (v1.6 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (v1.7 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;

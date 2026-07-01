@@ -14,6 +14,7 @@ import {
   personaHint,
   initAnimals,
   computeCallWarmth,
+  buildSpectrogramPeaks,
 } from '../tools/echoes-core.mjs';
 
 describe('recording quality scoring', () => {
@@ -114,6 +115,20 @@ describe('quality labels', () => {
     assert.equal(qualityLabel(0.9), 'CLEAN');
     assert.equal(qualityLabel(0.6), 'FAIR');
     assert.equal(qualityLabel(0.4), 'NOISY');
+  });
+});
+
+describe('buildSpectrogramPeaks', () => {
+  it('marks first peak as key for dominant species', () => {
+    const peaks = buildSpectrogramPeaks({
+      dominant: { id: 'owl' },
+      quality: 0.8,
+      timeOfDay: 'dusk',
+    });
+    assert.ok(peaks.length >= 1);
+    assert.equal(peaks[0].isKey, true);
+    assert.equal(peaks[0].speciesId, 'owl');
+    assert.ok(peaks[0].xNorm > 0 && peaks[0].xNorm < 1);
   });
 });
 

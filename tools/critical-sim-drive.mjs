@@ -38,6 +38,9 @@ export function driveCriticalSession({
   if (features.controlDock) script.listenRate *= 1.08;
   if (features.canvasCompass) script.idSkill *= 1.06;
   if (features.stereoWarmthAudio) script.listenRate *= 1.06;
+  if (features.interactiveSpectrogram) script.idSkill *= 1.14;
+  if (features.interactiveTutorial) script.idSkill *= 1.08;
+  if (features.vectorSpeciesArt) script.idSkill *= 1.05;
   const session = new FieldSession({
     habitat,
     timeOfDay,
@@ -62,7 +65,7 @@ export function driveCriticalSession({
   if (!features.missionBar) confusion.push('unclear_goal');
   if (!features.interactiveTutorial && !features.guidedCoach) friction.push('skipped_guided_coach');
   if (!features.canvasCompass) confusion.push('cant_find_animals');
-  if (!features.enhancedGraphics) friction.push('poor_visual_fidelity');
+  if (!features.enhancedGraphics && !features.vectorSpeciesArt) friction.push('poor_visual_fidelity');
 
   let firstRecQuality = null;
   let totalListenTicks = 0;
@@ -101,7 +104,10 @@ export function driveCriticalSession({
     }
     if (clip.quality <= 0.55) friction.push('noisy_recording');
 
-    const idSkill = script.idSkill * skill * (features.guidedCoach ? 1.08 : 0.82);
+    const idSkill = script.idSkill * skill * ((features.interactiveTutorial || features.guidedCoach) ? 1.08 : 0.82);
+    if (features.interactiveSpectrogram && clip.quality >= 0.48) {
+      delights.push('spectrogram_peak_tapped');
+    }
     const chosenId = pickSimIdentification({
       dominantId: clip.dominant.id,
       animals: session.animals,
@@ -116,7 +122,7 @@ export function driveCriticalSession({
     const outcome = session.identify(chosenId);
     if (outcome && !outcome.correct) {
       friction.push('id_card_miss');
-      confusion.push('identify_panel_confusing');
+      if (!features.interactiveSpectrogram) confusion.push('identify_panel_confusing');
     }
   }
 
@@ -142,6 +148,7 @@ export function driveCriticalSession({
   }
   if (features.stereoWarmthAudio && totalListenTicks >= 30) delights.push('stereo_warmth_aha');
   if (features.progressiveDisclosure) delights.push('progressive_ui_unlock');
+  if (features.vectorSpeciesArt) delights.push('vector_art_clarity');
   if (features.canvasCompass && totalListenTicks >= 30) delights.push('canvas_compass_used');
   if (features.missionBar && completed) delights.push('mission_bar_clarity');
 
