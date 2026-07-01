@@ -28,7 +28,7 @@ function staticChecks() {
     fieldSessionHook: html.includes('__echoesSession') && html.includes('FieldSession'),
     mobileHud: html.includes('id="control-dock"') || html.includes('id="mobile-hud"'),
     missionBar: html.includes('id="mission-bar"'),
-    guidedCoach: html.includes('id="guided-coach"'),
+    guidedCoach: html.includes('id="guided-coach"') || html.includes('id="interactive-tutorial"'),
     interactiveTutorial: html.includes('id="interactive-tutorial"'),
     progressiveDisclosure: html.includes('id="advanced-bar"'),
     stereoWarmthAudio: html.includes('computeCallWarmth'),
@@ -110,8 +110,11 @@ async function tryPlaywright() {
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
-  // Persona via DOM select (no localStorage evaluate)
-  await page.locator('#persona').selectOption('liam');
+  // Persona lives in #advanced-bar (hidden until first log) — skip if not visible yet
+  const personaEl = page.locator('#persona');
+  if (await personaEl.isVisible().catch(() => false)) {
+    await personaEl.selectOption('liam');
+  }
 
   const onboardResult = await dismissOnboardingViaDom(page);
   await page.waitForTimeout(400);
@@ -129,11 +132,11 @@ async function tryPlaywright() {
   const hintBefore = (await page.locator('#nearest-hint').textContent()) || '';
   const loggedBefore = parseLogged(await page.locator('#logged').textContent());
 
-  // Canvas mouse listen + mobile HUD Listen hold (no KeyL)
+  // Canvas mouse + HUD Listen hold (v1.6 tutorial unlocks Record after ~2s listen)
   await page.locator('#btn-listen').dispatchEvent('mousedown');
-  await canvasListenHold(page, 500);
+  await canvasListenHold(page, 1400);
   await page.locator('#btn-listen').dispatchEvent('mouseup');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(400);
 
   const hintAfter = (await page.locator('#nearest-hint').textContent()) || '';
   const nearestHintChanged = hintBefore !== hintAfter || hintAfter.trim().length > 0;
@@ -225,7 +228,7 @@ async function tryPlaywright() {
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification (v1.4.4 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (v1.6 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;
