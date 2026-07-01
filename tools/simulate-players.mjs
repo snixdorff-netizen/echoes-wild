@@ -54,6 +54,7 @@ for (const [segmentKey, seg] of Object.entries(SEGMENTS)) {
       skill: skillBySegment[segmentKey] + (i % 5) * 0.01,
       usesMobileHud: i % 3 === 0,
       features,
+      rng: rand,
     });
     players.push({
       id,
@@ -102,12 +103,14 @@ const thresholds = {
   meanFunMin: 9.0,
   meanWouldRecommendMin: 4.5,
   segmentFunMin: 8.0,
+  segmentWouldRecommendMin: 4.5,
 };
 
 const passed =
   aggregate.meanFun >= thresholds.meanFunMin &&
   aggregate.meanWouldRecommend >= thresholds.meanWouldRecommendMin &&
-  Object.values(bySegment).every((s) => s.meanFun >= thresholds.segmentFunMin);
+  Object.values(bySegment).every((s) => s.meanFun >= thresholds.segmentFunMin) &&
+  Object.values(bySegment).every((s) => s.meanWouldRecommend >= thresholds.segmentWouldRecommendMin);
 
 const report = {
   generatedAt: new Date().toISOString(),

@@ -1,9 +1,15 @@
 # ECHOES Wildlife Acoustics – 20-Person Playtest Kit
 
-**Version**: Playtest v1.2 (July 2026)
+**Version**: Playtest v1.3 (July 2026)
 **Live link (send this)**: https://snixdorff-netizen.github.io/echoes-wild/  
 **Game file**: `index.html` (single self-contained HTML — also works offline)  
 **Goal of test**: Validate fun, education value, usability, viral potential, and retention hooks with real users before further development or Unity port.
+
+### v1.3 changes (5-star simulation verified)
+- Unified browser + Node core via `build-browser-core.mjs` (parity tests)
+- Keyboard Listen auto-aims nearest caller; shared facing bonus with recording score
+- Realistic 100-player sim (move/listen/face/record/identify) — all segments fun 10.0, recommend 5.0, 100% completion
+- Field Report nudge at 5/6 species logged
 
 ### v1.2 changes (5-star simulation target)
 - Extracted `tools/echoes-core.mjs` — unit-tested recording/ID/integrity/expedition logic

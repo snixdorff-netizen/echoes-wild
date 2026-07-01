@@ -60,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.2 — tap Feedback when done. Get close + face them while listening.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.3 — hold L to auto-aim nearest caller. Tap Feedback when done.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -113,7 +113,7 @@
           <li>Complete 6/6 in a habitat for a special Field Report you can share</li>
         </ul>
         <p class="text-[10px]">For this playtest: Try to complete at least one full habitat. Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.2 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v1.3 • July 2026 • <a href="https://snixdorff-netizen.github.io/echoes-wild/" class="underline">Live link</a></p>
       </div>
     </div>
   </div>
@@ -133,7 +133,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.2-jul2026';
+    const BUILD_VERSION = 'playtest-v1.3-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -217,18 +217,33 @@
     function updateNearestHint() {
       const el = document.getElementById('nearest-hint');
       if (!el) return;
-      let nearest = null;
-      let nearestDist = Infinity;
-      animals.forEach(a => {
-        if (!a.activity.includes(gameState.timeOfDay)) return;
-        const d = Math.hypot(a.x - player.x, a.y - player.y);
-        if (d < nearestDist) { nearestDist = d; nearest = a; }
-      });
-      if (nearest) {
-        const active = nearest.activity.includes(gameState.timeOfDay);
-        el.textContent = active
-          ? `📡 Nearest caller: ${nearest.species.name} (${Math.round(nearestDist)}m) — ${active ? 'calling now' : 'quiet at this hour'}`
-          : '';
+      const nearest = EchoesCore.nearestActiveCaller(
+        { x: player.x, y: player.y },
+        animals,
+        gameState.timeOfDay
+      );
+      if (nearest.animal) {
+        el.textContent = `📡 Nearest caller: ${nearest.animal.species.name} (${Math.round(nearest.distance)}m) — calling now`;
+      } else {
+        el.textContent = 'No active callers — advance time (T) or switch habitat';
+      }
+    }
+
+    function updateListenFacing(ax, ay) {
+      if (!listenActive) return;
+      if (mouse.listenDown && (Math.abs(mouse.x - player.x) > 8 || Math.abs(mouse.y - player.y) > 8)) {
+        player.facing = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+        return;
+      }
+      const nearest = EchoesCore.nearestActiveCaller(
+        { x: player.x, y: player.y },
+        animals,
+        gameState.timeOfDay
+      );
+      if (nearest.animal) {
+        player.facing = Math.atan2(nearest.animal.y - player.y, nearest.animal.x - player.x);
+      } else if (ax || ay) {
+        player.facing = Math.atan2(ay, ax);
       }
     }
 
@@ -251,7 +266,7 @@
     }
 
     const ONBOARD_STEPS = [
-      { title: 'Listen like a field biologist', body: 'Move with WASD or tap the canvas. Hold Listen (L, touch 🎧, or mouse) to aim your mic — animals get louder when you face them.' },
+      { title: 'Listen like a field biologist', body: 'Move with WASD or tap the canvas. Hold Listen (L, touch 🎧, or mouse) — L auto-aims the nearest caller; animals get louder when you face them.' },
       { title: 'Record and identify', body: 'While listening, press Record (R or ⏺). Pick the species from the cards — the mini spectrogram hints at call shape (bat FM sweeps, bird whistles, frog peeps).' },
       { title: 'Complete + share', body: 'Log all 6 species in a habitat, copy your Field Report, then try Marsh or Canyon. Hit Feedback when your session ends — that data shapes v1.2.' }
     ];
@@ -631,6 +646,7 @@
       wasMouseDown = mouse.down;
 
       listenActive = !!(keys['l'] || keys[' '] || mouse.listenDown || mouse.down);
+      updateListenFacing(ax, ay);
 
       // animals wander + call
       animals.forEach(a => {
@@ -659,8 +675,8 @@
           const dy = a.y - player.y;
           const dist = Math.hypot(dx, dy);
           const dirTo = Math.atan2(dy, dx);
-          const angleDiff = Math.abs(((dirTo - player.facing + Math.PI*3) % (Math.PI*2)) - Math.PI);
-          const facingBonus = (listenActive && angleDiff < 1.1) ? 1.65 : 1.0;
+          const adiff = EchoesCore.angleDiff(dirTo, player.facing || 0);
+          const facingBonus = EchoesCore.facingBonusFromDiff(adiff, listenActive);
           if (dist < 520 || (listenActive && dist < 720)) {
             const vol = (0.85 * Math.max(0.12, 1 - dist / 560)) * (listenActive ? 1.25 : 0.85) * facingBonus;
             const panning = Math.max(-0.9, Math.min(0.9, dx / 560));
@@ -863,7 +879,7 @@
         animals,
         gameState.timeOfDay
       );
-      const best = rec.best;
+      const best = rec.dominant || rec.best;
 
       currentClip = {
         dominant: best.species,
@@ -950,7 +966,11 @@
       if (outcome.correct) {
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
         playCall(clip.dominant, 0.6, 0, 1);
-        showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
+        if (logged === 5) {
+          showToast(`✓ ${clip.dominant.name} logged — one more for your Field Report!`, 'good');
+        } else {
+          showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
+        }
         const shareBtn = document.getElementById('share-btn');
         if (shareBtn && logged === 1) shareBtn.classList.remove('hidden');
       } else {

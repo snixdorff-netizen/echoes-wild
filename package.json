@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/echoes-core.test.mjs",
+    "build:browser": "node tools/build-browser-core.mjs",
+    "test": "npm run build:browser && node --test test/*.test.mjs",
     "sim": "node tools/simulate-players.mjs",
     "verify": "node tools/browser-verify.mjs"
   },
