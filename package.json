@@ -6,7 +6,9 @@
     "build:browser": "node tools/build-browser-core.mjs",
     "test": "npm run build:browser && node --test test/*.test.mjs",
     "sim": "node tools/run-sim-twice.mjs",
-    "verify": "node tools/browser-verify.mjs"
+    "verify": "node tools/browser-verify.mjs",
+    "verify:scratch": "ECHOES_SCRATCH=/var/folders/jc/vlt38jc172b76pd4lmy9ch340000gn/T/grok-goal-2599e84b39ce/implementer node tools/browser-verify.mjs",
+    "sim:scratch": "ECHOES_SCRATCH=/var/folders/jc/vlt38jc172b76pd4lmy9ch340000gn/T/grok-goal-2599e84b39ce/implementer node tools/run-sim-twice.mjs"
   },
   "devDependencies": {
     "playwright": "^1.61.1"

@@ -1,9 +1,13 @@
 # ECHOES Wildlife Acoustics – 20-Person Playtest Kit
 
-**Version**: Playtest v1.4.3 (July 2026)
+**Version**: Playtest v1.4.4 (July 2026)
 **Live link (send this)**: https://snixdorff-netizen.github.io/echoes-wild/  
 **Game file**: `index.html` (single self-contained HTML — also works offline)  
 **Goal of test**: Validate fun, education value, usability, viral potential, and retention hooks with real users before further development or Unity port.
+
+### v1.4.4 changes (canvas-mouse browser verify)
+- Browser verify uses canvas mousedown/move for Listen, `#btn-record` click for Record, DOM `#logged` for state (no KeyL/KeyR/evaluate shortcuts)
+- Onboarding dismissed via `#onboard-next` DOM clicks; persona set via `#persona` select
 
 ### v1.4.3 changes (criterion-1 + DOM-click evidence)
 - `build-browser-core.mjs` injects pure helpers (`scoreAnimalTarget`, `applyIdentification`, etc.) into `index.html` between PURE_HELPERS markers
