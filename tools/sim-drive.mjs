@@ -5,6 +5,7 @@ import { markHabitatDone, scoreSessionRubric, EXPEDITION_REGULAR_TARGET } from '
 import {
   FieldSession,
   RECORD_BUDGET,
+  EXPEDITION_RECORD_BUDGET,
   SEGMENT_SCRIPTS,
   buildSimKeys,
   pickSimIdentification,
@@ -19,7 +20,7 @@ export function driveFieldSession({
   usesMobileHud = false,
   features = {},
   rng = Math.random,
-  recordBudget = RECORD_BUDGET,
+  recordBudget = features.expeditionArc ? EXPEDITION_RECORD_BUDGET : RECORD_BUDGET,
   bossAssist = features.expeditionArc && skill >= 0.78,
 }) {
   const script = { ...SEGMENT_SCRIPTS[segment], skill };

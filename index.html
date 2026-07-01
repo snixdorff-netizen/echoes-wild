@@ -351,7 +351,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v2.3-jul2026';
+    const BUILD_VERSION = 'playtest-v2.3.1-jul2026';
     const EXPEDITION_REGULAR_TARGET = EchoesCore.EXPEDITION_REGULAR_TARGET;
     const KALEIDOSCOPE_EXPEDITION_GATE = 3;
     const SONG_METER_EXPEDITION_GATE = 2;
@@ -486,10 +486,13 @@
     function getCompassTarget() {
       if (logged >= EXPEDITION_REGULAR_TARGET && !bossLogged) {
         const boss = getBossAnimal();
-        if (boss && boss.activity.includes(gameState.timeOfDay)) {
-          const dx = boss.x - player.x;
-          const dy = boss.y - player.y;
-          return { animal: boss, distance: Math.hypot(dx, dy) };
+        if (boss) {
+          const tod = EchoesCore.getBossTimeOfDay(boss.id, gameState.timeOfDay);
+          if (boss.activity.includes(tod) || bossPhaseActive) {
+            const dx = boss.x - player.x;
+            const dy = boss.y - player.y;
+            return { animal: boss, distance: Math.hypot(dx, dy) };
+          }
         }
       }
       return EchoesCore.nearestActiveCaller(
@@ -1170,30 +1173,21 @@
     function enterBossPhase() {
       if (bossPhaseActive || bossLogged) return;
       bossPhaseActive = true;
+      if (session) session.prepareBossPhase();
+      syncFromSession();
       const bossId = EchoesCore.getBossSpeciesId(gameState.habitat);
       const bossSp = species.find((s) => s.id === bossId);
-      const bossTod = bossId === 'owl' ? 'dusk' : bossId === 'peeper' ? 'night' : 'day';
-      if (session) {
-        session.gameState.timeOfDay = bossTod;
-        gameState.timeOfDay = bossTod;
-      }
-      document.getElementById('time-badge').textContent = timeLabels[bossTod];
+      document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
       const bossAnimal = animals.find((a) => a.id === bossId);
       if (bossAnimal) {
         bossAnimal.lastCall = performance.now();
-        bossAnimal.x = 440 + (Math.random() - 0.5) * 80;
-        bossAnimal.y = 280 + (Math.random() - 0.5) * 60;
       }
+      lastBossHeroCall = performance.now();
       playHeroCall(gameState.habitat);
       showToast(`Act II — ${bossSp?.name || 'Boss caller'} on the soundscape. Follow the coach + golden ring!`, 'good');
       updateExpeditionHud();
       updateMissionBar();
       updateFinalStretchCoach();
-      if (bossAnimal) {
-        const dx = bossAnimal.x - player.x;
-        const dy = bossAnimal.y - player.y;
-        player.facing = Math.atan2(dy, dx);
-      }
     }
 
     function playHeroCall(habitat) {
@@ -1402,6 +1396,7 @@
     let bossLogged = false;
     let expeditionComplete = false;
     let bossPhaseActive = false;
+    let lastBossHeroCall = 0;
     let integrity = 100;
     let gameState = { habitat: 'forest', timeOfDay: 'dawn' };
     let currentClip = null;
@@ -1587,10 +1582,18 @@
     }
 
     function switchHabitat(h) {
+      if (h === gameState.habitat) return;
+      if (logged > 0 && !expeditionComplete) {
+        const leave = window.confirm('Leave this expedition? Survey and boss progress for this habitat will reset.');
+        if (!leave) return;
+      }
+      closeFieldReportFinale();
+      closeKaleidoscope();
       session.switchHabitat(h);
       syncFromSession();
       expeditionComplete = false;
       bossPhaseActive = false;
+      lastBossHeroCall = 0;
       updateExpeditionHud();
       document.getElementById('integrity').textContent = '100';
       document.getElementById('journal').innerHTML = '';
@@ -1610,6 +1613,9 @@
       updateBestDisplay();
       startHabitatAmbient();
       applyPersonaDensity();
+      updateTrainingToolButtons();
+      updateFinalStretchCoach();
+      updatePowerBadge();
     }
 
     function advanceTime() {
@@ -1731,13 +1737,17 @@
     }
 
     function fieldLoopRecord() {
+      const bossHunt = logged >= EXPEDITION_REGULAR_TARGET && !bossLogged;
       const scored = selectRecordingTargetInPage(
         { x: player.x, y: player.y, facing: player.facing, listenActive },
         animals,
         gameState.timeOfDay
       );
-      const clip = session.record();
+      const clip = session.record({ preferBoss: bossHunt });
       syncFromSession();
+      if (bossHunt) {
+        document.getElementById('time-badge').textContent = timeLabels[gameState.timeOfDay];
+      }
       if (!clip) return null;
       clip._previewQuality = scored.quality;
       const best = clip.dominantAnimal || animals.find(a => a.species.id === clip.dominant.id);
@@ -1805,7 +1815,8 @@
           showToast(`✓ Survey complete (${EXPEDITION_REGULAR_TARGET}/${EXPEDITION_REGULAR_TARGET}) — Act II: boss caller!`, 'good');
           setTimeout(() => enterBossPhase(), 600);
         } else if (outcome.bonusLog) {
-          showToast(`✓ ${clip.dominant.name} — bonus log. Find the boss caller for your Field Report.`, 'info');
+          const bossName = species.find((s) => s.id === EchoesCore.getBossSpeciesId(gameState.habitat))?.name || 'boss caller';
+          showToast(`✓ ${clip.dominant.name} — bonus log only. Record the ${bossName} for your Field Report.`, 'info');
         } else {
           showToast(`✓ ${clip.dominant.name} logged — integrity +${outcome.delta}%`, 'good');
         }
@@ -1858,6 +1869,12 @@
       const prevDashing = isDashing;
 
       fieldLoopExplore(now, dt);
+      if (bossPhaseActive && !bossLogged && !expeditionComplete && now - lastBossHeroCall > 14000) {
+        lastBossHeroCall = now;
+        playHeroCall(gameState.habitat);
+        const bossAnimal = getBossAnimal();
+        if (bossAnimal) bossAnimal.lastCall = now;
+      }
       if (listenActive) {
         tutorialListenTicks++;
         if (tutorialListenTicks >= LISTEN_HOLD_TICKS) {
@@ -2476,6 +2493,9 @@
         showToast('Hold Listen first to unlock Record.', 'info');
         return;
       }
+      if (logged >= EXPEDITION_REGULAR_TARGET && !bossLogged && !bossPhaseActive) {
+        enterBossPhase();
+      }
       updateStreak();
       ensureAudio();
       fieldLoopRecord();
@@ -2836,6 +2856,7 @@
       bossLogged = false;
       expeditionComplete = false;
       bossPhaseActive = false;
+      lastBossHeroCall = 0;
       integrity = 100;
       journalEntries = [];
       currentClip = null;

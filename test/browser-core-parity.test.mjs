@@ -8,6 +8,7 @@ import {
   initAnimals,
   selectRecordingTarget,
   applyIdentification,
+  getBossTimeOfDay,
   FACING_BONUS_THRESHOLD,
 } from '../tools/echoes-core.mjs';
 
@@ -49,6 +50,12 @@ describe('browser bundle parity', () => {
     const rec = core.selectRecordingTarget(player, animals, 'dawn');
     assert.equal(rec.dominant.species.id, animals[0].species.id);
     assert.equal(rec.best.species.id, animals[0].species.id);
+  });
+
+  it('getBossTimeOfDay runs without missing globals', () => {
+    const core = loadBrowserCore();
+    assert.equal(core.getBossTimeOfDay('peeper', 'day'), getBossTimeOfDay('peeper', 'day'));
+    assert.equal(core.getBossTimeOfDay('owl', 'dawn'), getBossTimeOfDay('owl', 'dawn'));
   });
 
   it('applyIdentification matches mjs', () => {

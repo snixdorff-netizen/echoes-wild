@@ -11,6 +11,7 @@
   const FACING_BONUS_THRESHOLD = 1.2;
   const EXPEDITION_REGULAR_TARGET = 4;
   const BOSS_SPECIES_BY_HABITAT = {"forest":"owl","marsh":"peeper","canyon":"woodpecker"};
+  const BOSS_TIME_PREFERENCE = {"owl":["dusk","night"],"peeper":["night","dawn"],"woodpecker":["day"]};
 
   function angleDiff(dir, facing) {
   return Math.abs(((dir - facing + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
@@ -214,6 +215,15 @@
 }
   function getBossSpeciesId(habitat = 'forest') {
   return BOSS_SPECIES_BY_HABITAT[habitat] || 'owl';
+}
+  function bossActiveAtTime(bossId, timeOfDay) {
+  const sp = SPECIES.find((s) => s.id === bossId);
+  return sp ? sp.activity.includes(timeOfDay) : false;
+}
+  function getBossTimeOfDay(bossId, currentTod = 'dawn') {
+  const prefs = BOSS_TIME_PREFERENCE[bossId] || ['day'];
+  if (bossActiveAtTime(bossId, currentTod)) return currentTod;
+  return prefs.find((t) => bossActiveAtTime(bossId, t)) || prefs[0];
 }
   function expeditionPhase(logged, bossLogged = false, habitat = 'forest') {
   if (shouldCompleteExpedition(logged, bossLogged)) return 'complete';
@@ -497,9 +507,14 @@
     if (preferBoss || this.needsBossPhase()) {
       const bossId = getBossSpeciesId(this.gameState.habitat);
       const boss = this.animals.find((a) => a.id === bossId);
-      if (boss && boss.activity.includes(this.gameState.timeOfDay)) {
-        const bestScore = scoreAnimalTarget(player, boss, this.gameState.timeOfDay);
-        rec = { dominant: boss, quality: clipQualityFromScore(bestScore), bestScore };
+      if (boss) {
+        if (!boss.activity.includes(this.gameState.timeOfDay)) {
+          this.gameState.timeOfDay = getBossTimeOfDay(bossId, this.gameState.timeOfDay);
+        }
+        if (boss.activity.includes(this.gameState.timeOfDay)) {
+          const bestScore = scoreAnimalTarget(player, boss, this.gameState.timeOfDay);
+          rec = { dominant: boss, quality: clipQualityFromScore(bestScore), bestScore, forcedBoss: true };
+        }
       }
     }
     if (!rec) {
@@ -565,8 +580,7 @@
   /** Sim + UI parity: boss-active time shift and placement when survey target is met. */
   prepareBossPhase() {
     const bossId = getBossSpeciesId(this.gameState.habitat);
-    const bossTod = bossId === 'owl' ? 'dusk' : bossId === 'peeper' ? 'night' : 'day';
-    this.gameState.timeOfDay = bossTod;
+    this.gameState.timeOfDay = getBossTimeOfDay(bossId, this.gameState.timeOfDay);
     const bossAnimal = this.animals.find((a) => a.id === bossId);
     if (bossAnimal) {
       bossAnimal.x = 440 + (this.rng() - 0.5) * 70;
@@ -630,6 +644,8 @@
     applyIdentification: applyIdentification,
     shouldCompleteExpedition: shouldCompleteExpedition,
     getBossSpeciesId: getBossSpeciesId,
+    getBossTimeOfDay: getBossTimeOfDay,
+    bossActiveAtTime: bossActiveAtTime,
     expeditionPhase: expeditionPhase,
     EXPEDITION_REGULAR_TARGET: EXPEDITION_REGULAR_TARGET,
     BOSS_SPECIES_BY_HABITAT: BOSS_SPECIES_BY_HABITAT,

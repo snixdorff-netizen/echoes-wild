@@ -29,6 +29,9 @@ import {
   applyIdentification,
   shouldCompleteExpedition,
   getBossSpeciesId,
+  getBossTimeOfDay,
+  bossActiveAtTime,
+  BOSS_TIME_PREFERENCE,
   expeditionPhase,
   EXPEDITION_REGULAR_TARGET,
   BOSS_SPECIES_BY_HABITAT,
@@ -94,6 +97,7 @@ const body = `/* eslint-disable */
   const FACING_BONUS_THRESHOLD = ${FACING_BONUS_THRESHOLD};
   const EXPEDITION_REGULAR_TARGET = ${EXPEDITION_REGULAR_TARGET};
   const BOSS_SPECIES_BY_HABITAT = ${JSON.stringify(BOSS_SPECIES_BY_HABITAT)};
+  const BOSS_TIME_PREFERENCE = ${JSON.stringify(BOSS_TIME_PREFERENCE)};
 
   ${fnSource(angleDiff)}
   ${fnSource(scoreAnimalTarget)}
@@ -114,6 +118,8 @@ const body = `/* eslint-disable */
   ${fnSource(applyIdentification)}
   ${fnSource(shouldCompleteExpedition)}
   ${fnSource(getBossSpeciesId)}
+  ${fnSource(bossActiveAtTime)}
+  ${fnSource(getBossTimeOfDay)}
   ${fnSource(expeditionPhase)}
   ${fnSource(markHabitatDone)}
   ${fnSource(personaHint)}
@@ -154,6 +160,8 @@ const body = `/* eslint-disable */
     applyIdentification: applyIdentification,
     shouldCompleteExpedition: shouldCompleteExpedition,
     getBossSpeciesId: getBossSpeciesId,
+    getBossTimeOfDay: getBossTimeOfDay,
+    bossActiveAtTime: bossActiveAtTime,
     expeditionPhase: expeditionPhase,
     EXPEDITION_REGULAR_TARGET: EXPEDITION_REGULAR_TARGET,
     BOSS_SPECIES_BY_HABITAT: BOSS_SPECIES_BY_HABITAT,

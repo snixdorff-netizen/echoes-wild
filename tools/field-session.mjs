@@ -13,12 +13,15 @@ import {
   applyIdentification,
   shouldCompleteExpedition,
   getBossSpeciesId,
+  getBossTimeOfDay,
+  bossActiveAtTime,
   EXPEDITION_REGULAR_TARGET,
   simIdentificationBonus,
   buildIdentifyOptions,
 } from './echoes-core.mjs';
 
 export const RECORD_BUDGET = 8;
+export const EXPEDITION_RECORD_BUDGET = 11;
 
 export const SEGMENT_SCRIPTS = {
   naturalist: { listenRate: 0.9, idSkill: 0.92, dashChance: 0 },
@@ -184,9 +187,14 @@ export class FieldSession {
     if (preferBoss || this.needsBossPhase()) {
       const bossId = getBossSpeciesId(this.gameState.habitat);
       const boss = this.animals.find((a) => a.id === bossId);
-      if (boss && boss.activity.includes(this.gameState.timeOfDay)) {
-        const bestScore = scoreAnimalTarget(player, boss, this.gameState.timeOfDay);
-        rec = { dominant: boss, quality: clipQualityFromScore(bestScore), bestScore };
+      if (boss) {
+        if (!boss.activity.includes(this.gameState.timeOfDay)) {
+          this.gameState.timeOfDay = getBossTimeOfDay(bossId, this.gameState.timeOfDay);
+        }
+        if (boss.activity.includes(this.gameState.timeOfDay)) {
+          const bestScore = scoreAnimalTarget(player, boss, this.gameState.timeOfDay);
+          rec = { dominant: boss, quality: clipQualityFromScore(bestScore), bestScore, forcedBoss: true };
+        }
       }
     }
     if (!rec) {
@@ -252,8 +260,7 @@ export class FieldSession {
   /** Sim + UI parity: boss-active time shift and placement when survey target is met. */
   prepareBossPhase() {
     const bossId = getBossSpeciesId(this.gameState.habitat);
-    const bossTod = bossId === 'owl' ? 'dusk' : bossId === 'peeper' ? 'night' : 'day';
-    this.gameState.timeOfDay = bossTod;
+    this.gameState.timeOfDay = getBossTimeOfDay(bossId, this.gameState.timeOfDay);
     const bossAnimal = this.animals.find((a) => a.id === bossId);
     if (bossAnimal) {
       bossAnimal.x = 440 + (this.rng() - 0.5) * 70;

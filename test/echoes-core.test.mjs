@@ -10,6 +10,9 @@ import {
   integrityLoss,
   applyIdentification,
   shouldCompleteExpedition,
+  getBossTimeOfDay,
+  bossActiveAtTime,
+  getBossSpeciesId,
   markHabitatDone,
   personaHint,
   initAnimals,
@@ -101,6 +104,24 @@ describe('expedition completion gate', () => {
   });
 });
 
+describe('boss time-of-day edge cases', () => {
+  it('peeper boss prefers night when current time is day', () => {
+    assert.equal(bossActiveAtTime('peeper', 'day'), false);
+    assert.equal(bossActiveAtTime('peeper', 'night'), true);
+    assert.equal(getBossTimeOfDay('peeper', 'day'), 'night');
+  });
+
+  it('owl boss falls back from dawn to dusk', () => {
+    assert.equal(getBossTimeOfDay('owl', 'dawn'), 'dusk');
+    assert.equal(getBossTimeOfDay('owl', 'dusk'), 'dusk');
+  });
+
+  it('marsh habitat boss resolves to peeper', () => {
+    assert.equal(getBossSpeciesId('marsh'), 'peeper');
+    assert.equal(getBossTimeOfDay(getBossSpeciesId('marsh'), 'day'), 'night');
+  });
+});
+
 describe('applyIdentification expedition arc', () => {
   it('boss log completes only after survey target', () => {
     const boss = applyIdentification({
@@ -125,6 +146,21 @@ describe('applyIdentification expedition arc', () => {
     });
     assert.equal(early.logged, 3);
     assert.equal(early.isBossEarly, true);
+  });
+
+  it('bonus log after survey does not advance toward boss', () => {
+    const bonus = applyIdentification({
+      chosenId: 'cardinal',
+      dominantId: 'cardinal',
+      quality: 0.7,
+      logged: 4,
+      integrity: 88,
+      bossLogged: false,
+      habitat: 'forest',
+    });
+    assert.equal(bonus.bonusLog, true);
+    assert.equal(bonus.logged, 4);
+    assert.equal(bonus.bossLogged, false);
   });
 });
 

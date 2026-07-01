@@ -5,6 +5,7 @@ import { markHabitatDone, scoreBioacousticsRubric, EXPEDITION_REGULAR_TARGET } f
 import {
   FieldSession,
   RECORD_BUDGET,
+  EXPEDITION_RECORD_BUDGET,
   buildSimKeys,
   pickSimIdentification,
 } from './field-session.mjs';
@@ -61,8 +62,8 @@ export function driveBioacousticsSession({
   usesMobileHud = false,
   features = {},
   rng = Math.random,
-  recordBudget = RECORD_BUDGET,
-  bossAssist = features.expeditionArc && skill >= (features.finalStretchCoach ? 0.76 : 0.78),
+  recordBudget = features.expeditionArc ? EXPEDITION_RECORD_BUDGET : RECORD_BUDGET,
+  bossAssist = features.expeditionArc && skill >= (features.finalStretchCoach ? 0.74 : 0.78),
 }) {
   const base = BIOACOUSTICS_ROLE_SCRIPTS[engineer.role] || BIOACOUSTICS_ROLE_SCRIPTS.field_tech;
   const habitMod = PLAY_HABIT_MODS[engineer.playHabit] || PLAY_HABIT_MODS.none;

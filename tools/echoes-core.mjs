@@ -194,6 +194,24 @@ export function getBossSpeciesId(habitat = 'forest') {
   return BOSS_SPECIES_BY_HABITAT[habitat] || 'owl';
 }
 
+export const BOSS_TIME_PREFERENCE = {
+  owl: ['dusk', 'night'],
+  peeper: ['night', 'dawn'],
+  woodpecker: ['day'],
+};
+
+export function bossActiveAtTime(bossId, timeOfDay) {
+  const sp = SPECIES.find((s) => s.id === bossId);
+  return sp ? sp.activity.includes(timeOfDay) : false;
+}
+
+/** Pick a time-of-day when the habitat boss can call (fallback order per species). */
+export function getBossTimeOfDay(bossId, currentTod = 'dawn') {
+  const prefs = BOSS_TIME_PREFERENCE[bossId] || ['day'];
+  if (bossActiveAtTime(bossId, currentTod)) return currentTod;
+  return prefs.find((t) => bossActiveAtTime(bossId, t)) || prefs[0];
+}
+
 export function expeditionPhase(logged, bossLogged = false, habitat = 'forest') {
   if (shouldCompleteExpedition(logged, bossLogged)) return 'complete';
   if (logged >= EXPEDITION_REGULAR_TARGET) return 'boss';
