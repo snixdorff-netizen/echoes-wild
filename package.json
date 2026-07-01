@@ -5,7 +5,7 @@
   "scripts": {
     "build:browser": "node tools/build-browser-core.mjs",
     "test": "npm run build:browser && node --test test/*.test.mjs",
-    "sim": "node tools/simulate-players.mjs",
+    "sim": "node tools/run-sim-twice.mjs",
     "verify": "node tools/browser-verify.mjs"
   },
   "devDependencies": {

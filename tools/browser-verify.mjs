@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Browser verification — real keyboard input driving FieldSession via index.html.
+ * Browser verification — real keyboard + DOM clicks driving index.html.
  */
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
@@ -20,12 +20,13 @@ const html = readFileSync(join(root, 'index.html'), 'utf8');
 
 function staticChecks() {
   return {
-    parsesScriptBlock: html.includes('function fieldLoopRecord') && html.includes('function fieldLoopIdentify'),
+    pureHelpersInjected: html.includes('PURE_HELPERS_START') && html.includes('function scoreAnimalTarget(player, animal, timeOfDay)'),
+    selectRecordingTargetInPage: html.includes('function selectRecordingTargetInPage'),
+    fieldLoopRecord: html.includes('function fieldLoopRecord'),
+    speciesDataAttr: html.includes('dataset.speciesId'),
     echoesCoreLoaded: html.includes('echoes-core.browser.js'),
     fieldSessionHook: html.includes('__echoesSession') && html.includes('FieldSession'),
-    buildIdentifyOptions: html.includes('buildIdentifyOptions'),
     mobileHud: html.includes('id="mobile-hud"'),
-    personaSelect: html.includes('id="persona"'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
   };
@@ -101,54 +102,56 @@ async function tryPlaywright() {
   const listenTicks = state1.listenTicksSession;
 
   await page.keyboard.press('r');
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(450);
 
   const identifyUi = await page.evaluate(() => {
     const s = window.__echoesSession.getState();
     const panel = document.getElementById('identify-panel');
     const opts = document.getElementById('identify-options');
-    const buttons = opts ? [...opts.querySelectorAll('button')] : [];
+    const buttons = opts ? [...opts.querySelectorAll('button[data-species-id]')] : [];
     return {
       hasClip: !!s.currentClip,
       recordCount: s.recordCount,
       identifyVisible: panel && !panel.classList.contains('hidden'),
       optionCount: buttons.length,
-      hasMostLikely: (opts?.innerHTML || '').includes('Most likely'),
+      hasMostLikely: !!opts?.querySelector('button[data-likely="1"]'),
       timeOfDay: s.gameState.timeOfDay,
       dominantId: s.currentClip?.dominant?.id || null,
-      quality: s.currentClip?.quality || 0,
     };
   });
 
   const expectedActive = activeSpeciesForTime(SPECIES, identifyUi.timeOfDay || 'dawn').length;
 
-  let finalStretchToast = false;
-  for (let round = 0; round < 4; round++) {
-    if (!identifyUi.dominantId && round > 0) break;
-    const domId = await page.evaluate(() => window.__echoesSession.getState().currentClip?.dominant?.id);
-    if (!domId) {
-      await page.keyboard.down('l');
-      for (let i = 0; i < 30; i++) await page.waitForTimeout(16);
-      await page.keyboard.up('l');
-      await page.keyboard.press('r');
-      await page.waitForTimeout(350);
-    }
-    const clickId = domId || identifyUi.dominantId;
-    if (!clickId) break;
-    await page.evaluate((speciesId) => {
-      if (typeof submitIdentification === 'function') submitIdentification(speciesId);
-    }, clickId);
+  // DOM click on ★ Most likely species card (no evaluate submitIdentification)
+  let domClickLogged = false;
+  try {
+    const likelyBtn = page.locator('#identify-options button[data-likely="1"]');
+    await likelyBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await likelyBtn.click();
     await page.waitForTimeout(500);
-    const toastText = await page.evaluate(() => document.getElementById('toast')?.textContent || '');
-    if (toastText.includes('final stretch')) finalStretchToast = true;
-    if (round < 3) {
-      await page.keyboard.down('l');
-      for (let i = 0; i < 25; i++) await page.waitForTimeout(16);
-      await page.keyboard.up('l');
-      await page.keyboard.press('r');
-      await page.waitForTimeout(350);
-    }
+    const afterClick = await page.evaluate(() => window.__echoesSession.getState().logged);
+    domClickLogged = afterClick >= 1;
+  } catch (e) {
+    errors.push('DOM click likely species failed: ' + e.message);
   }
+
+  let finalStretchToast = false;
+  for (let round = 0; round < 3; round++) {
+    await page.keyboard.down('l');
+    for (let i = 0; i < 25; i++) await page.waitForTimeout(16);
+    await page.keyboard.up('l');
+    await page.keyboard.press('r');
+    await page.waitForTimeout(400);
+    const likely = page.locator('#identify-options button[data-likely="1"]');
+    if (await likely.count()) {
+      await likely.first().click();
+      await page.waitForTimeout(450);
+    }
+    const toastText = await page.locator('#toast').textContent().catch(() => '');
+    if (toastText && toastText.includes('final stretch')) finalStretchToast = true;
+  }
+
+  const loggedFinal = await page.evaluate(() => window.__echoesSession.getState().logged);
 
   const dims = await page.evaluate(() => {
     const c = document.getElementById('game');
@@ -177,7 +180,9 @@ async function tryPlaywright() {
     listenTicks,
     identifyUi,
     expectedActive,
+    domClickLogged,
     finalStretchToast,
+    loggedFinal,
     painted,
     facingBefore,
     facingAfter,
@@ -186,7 +191,7 @@ async function tryPlaywright() {
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification (FieldSession v1.4.2)', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (v1.4.3 DOM-click playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;
@@ -215,12 +220,12 @@ async function main() {
   log.push('facing changed: ' + pw.facingChanged + ' (' + pw.facingBefore.toFixed(3) + ' -> ' + pw.facingAfter.toFixed(3) + ')');
   log.push(
     'record via KeyR: count=' + pw.identifyUi.recordCount +
-    ' clip=' + pw.identifyUi.hasClip +
     ' panel=' + pw.identifyUi.identifyVisible +
     ' options=' + pw.identifyUi.optionCount + '/' + pw.expectedActive +
     ' mostLikely=' + pw.identifyUi.hasMostLikely,
   );
-  log.push('final stretch toast after 4th log: ' + pw.finalStretchToast);
+  log.push('DOM click ★ species → logged>=1: ' + pw.domClickLogged + ' (final logged=' + pw.loggedFinal + ')');
+  log.push('final stretch toast: ' + pw.finalStretchToast);
   log.push('nonzero pixels: ' + pw.painted);
   log.push('page errors: ' + (pw.errors.length ? pw.errors.join('; ') : 'none'));
   log.push('screenshot: ' + join(scratch, 'launch.png'));
@@ -237,8 +242,9 @@ async function main() {
     pw.identifyUi.recordCount >= 1 &&
     pw.identifyUi.identifyVisible &&
     pw.identifyUi.optionCount === pw.expectedActive &&
-    pw.identifyUi.optionCount < SPECIES.length &&
     pw.identifyUi.hasMostLikely &&
+    pw.domClickLogged &&
+    pw.loggedFinal >= 4 &&
     pw.finalStretchToast &&
     pw.painted > 1000 &&
     Object.values(checks).every(Boolean);

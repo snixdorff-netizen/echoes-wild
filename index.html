@@ -60,7 +60,7 @@
       <option value="marcus">Persona: Citizen scientist</option>
       <option value="elena">Persona: Pro biologist</option>
     </select>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4.2 — FieldSession engine. Hold L, record, identify. Tap Feedback when done.</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">Playtest v1.4.3 — pure helpers inlined. Hold L, record, identify. Tap Feedback when done.</span>
   </div>
 
   <canvas id="game" width="880" height="620" class="mx-auto rounded-2xl cursor-crosshair touch-none"></canvas>
@@ -133,7 +133,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v1.4.2-jul2026';
+    const BUILD_VERSION = 'playtest-v1.4.3-jul2026';
     let persona = 'liam';
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
@@ -548,6 +548,69 @@
       });
     }
 
+    <!-- PURE_HELPERS_START -->
+    /* AUTO-INJECTED by tools/build-browser-core.mjs — pure field-loop helpers in shipped source */
+    function angleDiff(dir, facing) {
+      return Math.abs(((dir - facing + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+    }
+    function scoreAnimalTarget(player, animal, timeOfDay) {
+      if (!animal.activity.includes(timeOfDay)) return -999;
+      const dx = animal.x - player.x;
+      const dy = animal.y - player.y;
+      const dist = Math.hypot(dx, dy);
+      const dir = Math.atan2(dy, dx);
+      const adiff = angleDiff(dir, player.facing);
+      const facingScore = player.listenActive ? (1.6 - Math.min(1.2, adiff)) : 0.6;
+      return (620 - dist) * 0.9 + facingScore * 180;
+    }
+    function clipQualityFromScore(bestScore) {
+      return Math.max(0.35, Math.min(1, bestScore / 650));
+    }
+    function integrityGain(quality) {
+      return Math.round(3 + quality * 6);
+    }
+    function integrityLoss(quality) {
+      return quality > 0.7 ? 8 : 4;
+    }
+    function applyIdentification({ chosenId, dominantId, quality, logged, integrity }) {
+      const correct = chosenId === dominantId;
+      if (correct) {
+        const gain = integrityGain(quality);
+        return {
+          correct: true,
+          logged: Math.min(6, logged + 1),
+          integrity: Math.min(100, integrity + gain),
+          delta: gain,
+        };
+      }
+      const loss = integrityLoss(quality);
+      return {
+        correct: false,
+        logged,
+        integrity: Math.max(35, integrity - loss),
+        delta: -loss,
+      };
+    }
+    function shouldCompleteExpedition(logged) {
+      return logged >= 6;
+    }
+    <!-- PURE_HELPERS_END -->
+
+    /** Score recording target using inlined pure helpers (criterion 1). */
+    function selectRecordingTargetInPage(player, animals, timeOfDay) {
+      let best = null;
+      let bestScore = -999;
+      for (const a of animals) {
+        const score = scoreAnimalTarget(player, a, timeOfDay);
+        if (score > bestScore) { bestScore = score; best = a; }
+      }
+      if (!best && animals.length) {
+        best = animals[0];
+        bestScore = scoreAnimalTarget(player, best, timeOfDay);
+      }
+      return { dominant: best, quality: clipQualityFromScore(bestScore), bestScore };
+    }
+
     /** FIELD_LOOP — end-to-end expedition chain in shipped source:
      *  explore → listen → record (quality) → identify → journal/integrity → 6/6 complete */
     function fieldLoopExplore(now, dt) {
@@ -562,7 +625,7 @@
     }
 
     function fieldLoopRecord() {
-      const scored = EchoesCore.selectRecordingTarget(
+      const scored = selectRecordingTargetInPage(
         { x: player.x, y: player.y, facing: player.facing, listenActive },
         animals,
         gameState.timeOfDay
@@ -585,9 +648,19 @@
       const clip = currentClip;
       if (!clip) { panel.classList.add('hidden'); return null; }
       const q = clip.quality;
+      const preview = applyIdentification({
+        chosenId,
+        dominantId: clip.dominant.id,
+        quality: q,
+        logged,
+        integrity,
+      });
       const outcome = session.identify(chosenId);
       syncFromSession();
       if (!outcome) { panel.classList.add('hidden'); return null; }
+      if (preview.correct !== outcome.correct || preview.logged !== outcome.logged) {
+        console.warn('[ECHOES] identify preview/session mismatch');
+      }
       document.getElementById('logged').textContent = logged + '/6';
       if (outcome.correct) {
         journalEntries.unshift({ species: clip.dominant, time: clip.timeOfDay, quality: q, correct: true });
@@ -618,7 +691,7 @@
       panel.classList.remove('block');
       panel.classList.add('hidden');
       currentClip = null;
-      if (EchoesCore.shouldCompleteExpedition(logged)) {
+      if (shouldCompleteExpedition(logged)) {
         setTimeout(() => fieldLoopComplete(), 450);
       }
       return outcome;
@@ -895,6 +968,8 @@
         const likelyTag = choice.isLikely ? '<span class="text-[9px] text-emerald-300/90 ml-1">★ Most likely</span>' : '';
         b.className = 'species-btn px-3 py-2 text-xs rounded-2xl border bg-zinc-950 hover:border-emerald-400/60 text-left ' +
           (choice.isLikely ? 'border-emerald-400/70 ring-1 ring-emerald-400/40' : 'border-white/10');
+        b.dataset.speciesId = sp.id;
+        if (choice.isLikely) b.dataset.likely = '1';
         b.innerHTML = `<span class="font-medium" style="color:${sp.color}">${sp.name}</span>${likelyTag}<div class="text-[10px] text-white/50">${sp.fact}</div>`;
         b.onclick = () => submitIdentification(sp.id);
         opts.appendChild(b);
@@ -1259,7 +1334,7 @@
         setTimeout(() => { if (tip) tip.style.boxShadow = 'none'; }, 2200);
       }, 2500);
 
-      console.log('%c[ECHOES] Playtest v1.4.2 — fieldLoopExplore/Record/Identify/Complete.', 'color:#4ade80');
+      console.log('%c[ECHOES] Playtest v1.4.3 — inlined pure helpers + fieldLoop chain.', 'color:#4ade80');
     }
 
     function updateStats() {

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Generates tools/echoes-core.browser.js from tools/echoes-core.mjs + FieldSession.
+ * Generates tools/echoes-core.browser.js AND injects pure helpers into index.html.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -36,7 +36,22 @@ import {
 import { FieldSession } from './field-session.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
 const out = join(__dirname, 'echoes-core.browser.js');
+const htmlPath = join(root, 'index.html');
+
+const PURE_HELPERS_START = '<!-- PURE_HELPERS_START -->';
+const PURE_HELPERS_END = '<!-- PURE_HELPERS_END -->';
+
+const INJECT_FNS = [
+  angleDiff,
+  scoreAnimalTarget,
+  clipQualityFromScore,
+  integrityGain,
+  integrityLoss,
+  applyIdentification,
+  shouldCompleteExpedition,
+];
 
 function fnSource(fn) {
   return fn
@@ -113,4 +128,25 @@ const body = `/* eslint-disable */
 `;
 
 writeFileSync(out, body);
+
+const helperBlock = [
+  '    /* AUTO-INJECTED by tools/build-browser-core.mjs — pure field-loop helpers in shipped source */',
+  ...INJECT_FNS.map((fn) => '    ' + fnSource(fn).replace(/\n/g, '\n    ')),
+].join('\n');
+
+let html = readFileSync(htmlPath, 'utf8');
+const startIdx = html.indexOf(PURE_HELPERS_START);
+const endIdx = html.indexOf(PURE_HELPERS_END);
+if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+  throw new Error('index.html missing PURE_HELPERS_START/END markers');
+}
+html =
+  html.slice(0, startIdx + PURE_HELPERS_START.length) +
+  '\n' +
+  helperBlock +
+  '\n    ' +
+  html.slice(endIdx);
+writeFileSync(htmlPath, html);
+
 console.log('Wrote', out);
+console.log('Injected pure helpers into', htmlPath);
