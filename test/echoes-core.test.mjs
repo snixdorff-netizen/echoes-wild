@@ -26,7 +26,18 @@ import {
   buildPhenologyMatrix,
   buildClipManifest,
   dailyRareSpecies,
+  isExpeditionTimeGated,
+  buildDailyBioBlitzAssignment,
+  buildKaleidoscopeClipsFromJournal,
+  isTrainingPersona,
+  readShippedFeaturesFromHtml,
+  EXPEDITION_REGULAR_TARGET,
 } from '../tools/echoes-core.mjs';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('recording quality scoring', () => {
   const animal = { x: 200, y: 300, activity: ['dawn', 'day'], species: { id: 'cardinal' } };
@@ -260,6 +271,104 @@ describe('dailyRareSpecies', () => {
     const a = dailyRareSpecies(new Date('2026-07-01'));
     const b = dailyRareSpecies(new Date('2026-07-01'));
     assert.equal(a.id, b.id);
+  });
+});
+
+describe('v2.4 bioacoustics pipeline helpers', () => {
+  it('isExpeditionTimeGated blocks free skip during survey, exempts boss phase', () => {
+    assert.equal(isExpeditionTimeGated({ logged: 2, bossLogged: false }), true);
+    assert.equal(
+      isExpeditionTimeGated({ logged: EXPEDITION_REGULAR_TARGET, bossLogged: false, bossPhaseActive: true }),
+      false,
+    );
+    assert.equal(isExpeditionTimeGated({ expeditionComplete: true }), false);
+  });
+
+  it('buildDailyBioBlitzAssignment returns persona-flavored copy', () => {
+    const liam = buildDailyBioBlitzAssignment({ persona: 'liam', date: new Date('2026-07-01'), streak: 3 });
+    const aisha = buildDailyBioBlitzAssignment({ persona: 'aisha', date: new Date('2026-07-01') });
+    assert.ok(liam.headline.includes('BioBlitz'));
+    assert.ok(liam.headline.includes(liam.rare.name));
+    assert.ok(aisha.headline.includes('Family Chorus'));
+    assert.ok(liam.compassHint.includes('streak 3'));
+  });
+
+  it('buildKaleidoscopeClipsFromJournal uses expedition journal not samples', () => {
+    const journal = [
+      { correct: true, species: { id: 'owl', name: 'Barred Owl' }, quality: 0.82 },
+      { correct: true, species: { id: 'cardinal', name: 'Northern Cardinal' }, quality: 0.71 },
+      { correct: false, species: { id: 'bat', name: 'Bat' }, quality: 0.5 },
+    ];
+    const built = buildKaleidoscopeClipsFromJournal(journal, { minClips: 2 });
+    assert.equal(built.fromJournal, true);
+    assert.equal(built.clips.length, 2);
+    assert.equal(built.clips[0].speciesId, 'owl');
+  });
+
+  it('isTrainingPersona gates training tools personas', () => {
+    assert.equal(isTrainingPersona('aisha'), true);
+    assert.equal(isTrainingPersona('liam'), false);
+  });
+
+  it('scoreBioacousticsRubric lifts spectrogram fidelity with v2.4 delights', () => {
+    const base = scoreBioacousticsRubric({
+      role: 'pam_analyst',
+      completed: true,
+      integrity: 90,
+      friction: [],
+      delights: ['spectrogram_peak_tapped'],
+      features: { interactiveSpectrogram: true, kaleidoscopePoc: true },
+      journal: Array.from({ length: 5 }, () => ({ correct: true })),
+      recQuality: 0.8,
+      listenActive: true,
+      playHabit: 'puzzle',
+    });
+    const v24 = scoreBioacousticsRubric({
+      role: 'pam_analyst',
+      completed: true,
+      integrity: 90,
+      friction: [],
+      delights: ['spectrogram_peak_tapped', 'kaleidoscope_review_complete', 'daily_bioblitz_assignment'],
+      features: {
+        interactiveSpectrogram: true,
+        kaleidoscopePoc: true,
+        kaleidoscopeActIV: true,
+        dailyBioBlitzShipped: true,
+        phenologyGatedTime: true,
+      },
+      journal: Array.from({ length: 5 }, () => ({ correct: true })),
+      recQuality: 0.8,
+      listenActive: true,
+      playHabit: 'puzzle',
+    });
+    assert.ok(v24.spectrogramFidelity >= 9.99);
+    assert.ok(v24.spectrogramFidelity > base.spectrogramFidelity);
+  });
+
+  it('educator classroom score clears with persona auto-demo delight', () => {
+    const scores = scoreBioacousticsRubric({
+      role: 'educator',
+      completed: true,
+      integrity: 88,
+      friction: [],
+      delights: ['persona_demo_auto', 'interactive_tutorial_complete'],
+      features: { demoMode: true, personaAutoDemo: true, personaJourney: true, guidedCoach: true },
+      journal: Array.from({ length: 5 }, () => ({ correct: true })),
+      recQuality: 0.78,
+      listenActive: true,
+      playHabit: 'puzzle',
+    });
+    assert.ok(scores.wouldUseInClassroom >= 4.0);
+  });
+
+  it('readShippedFeaturesFromHtml detects v2.4 shipped flags in index.html', () => {
+    const html = readFileSync(join(root, 'index.html'), 'utf8');
+    const features = readShippedFeaturesFromHtml(html);
+    assert.equal(features.dailyBioBlitzShipped, true);
+    assert.equal(features.personaJourney, true);
+    assert.equal(features.phenologyGatedTime, true);
+    assert.equal(features.kaleidoscopeActIV, true);
+    assert.equal(features.personaAutoDemo, true);
   });
 });
 

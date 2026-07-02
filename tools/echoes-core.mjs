@@ -363,6 +363,60 @@ export function dailyRareSpecies(date = new Date()) {
   return SPECIES[idx];
 }
 
+export const TRAINING_PERSONAS = ['aisha', 'marcus', 'elena'];
+
+export function isTrainingPersona(persona) {
+  return TRAINING_PERSONAS.includes(persona);
+}
+
+/** Expedition survey windows change only via Schedule / phenology chart (boss auto-shift exempt). */
+export function isExpeditionTimeGated({
+  logged = 0,
+  bossLogged = false,
+  expeditionComplete = false,
+  bossPhaseActive = false,
+  expeditionRegularTarget = EXPEDITION_REGULAR_TARGET,
+} = {}) {
+  if (expeditionComplete) return false;
+  if (bossPhaseActive || (logged >= expeditionRegularTarget && !bossLogged)) return false;
+  return true;
+}
+
+export function buildDailyBioBlitzAssignment({ persona = 'liam', date = new Date(), streak = 0 } = {}) {
+  const rare = dailyRareSpecies(date);
+  let headline;
+  if (persona === 'aisha') headline = 'Family Chorus: log 2 dawn species with students';
+  else if (persona === 'marcus') headline = `Site report: clear a habitat + log ${rare.name}`;
+  else if (persona === 'elena') headline = `Batch review: cluster clips · target ${rare.name}`;
+  else headline = `Quick BioBlitz: find today's ★ ${rare.name}`;
+  return {
+    rare,
+    streak,
+    headline,
+    compassHint: `★ Daily: ${rare.name}${streak > 0 ? ` · streak ${streak}` : ''}`,
+  };
+}
+
+/** Kaleidoscope Act IV clips sourced from expedition journal (not hardcoded samples). */
+export function buildKaleidoscopeClipsFromJournal(journalEntries = [], { minClips = 2 } = {}) {
+  const clips = journalEntries
+    .filter((e) => e.correct)
+    .map((e, i) => {
+      const sp = typeof e.species === 'object' ? e.species : { id: e.species, name: String(e.species) };
+      return {
+        id: `kclip_${i}`,
+        speciesId: sp.id || sp,
+        label: `${sp.name || sp.id} · ${Math.round((e.quality || 0.6) * 100)}%`,
+        quality: e.quality ?? 0.6,
+      };
+    });
+  return {
+    clips,
+    fromJournal: clips.length >= minClips,
+    needsSamples: clips.length < minClips,
+  };
+}
+
 /** Frequency-band fingerprints for interactive spectrogram peaks. */
 export const SPECIES_FREQ_PROFILES = {
   cardinal: { peaks: [0.28, 0.45, 0.62], label: 'Whistle band' },
@@ -765,6 +819,27 @@ export function scoreBioacousticsRubric({
   if (features.dailyBioBlitz) {
     wouldRecommendForTraining += 0.15;
   }
+  if (features.dailyBioBlitzShipped) {
+    trainingValue += 0.35;
+    wouldRecommendForTraining += 0.2;
+  }
+  if (features.phenologyGatedTime) {
+    scientificCredibility += 0.55;
+    trainingValue += 0.4;
+  }
+  if (features.kaleidoscopeActIV) {
+    spectrogramFidelity += 0.85;
+    trainingValue += 0.55;
+    wouldRecommendForTraining += 0.2;
+  }
+  if (features.personaJourney) {
+    trainingValue += 0.25;
+    if (role === 'educator') wouldUseInClassroom += 0.35;
+  }
+  if (features.personaAutoDemo) {
+    if (role === 'educator') wouldUseInClassroom += 0.55;
+    trainingValue += 0.2;
+  }
   if (features.vectorSpeciesArt) {
     trainingValue += 0.2;
     scientificCredibility += 0.15;
@@ -797,6 +872,20 @@ export function scoreBioacousticsRubric({
   }
   if (delights.includes('interactive_tutorial_complete')) {
     wouldUseInClassroom += 0.2;
+  }
+  if (delights.includes('kaleidoscope_review_complete')) {
+    spectrogramFidelity += 1.15;
+    trainingValue += 0.45;
+    wouldRecommendForTraining += 0.3;
+  }
+  if (delights.includes('persona_demo_auto')) {
+    wouldUseInClassroom += role === 'educator' ? 0.45 : 0.15;
+    trainingValue += 0.2;
+  }
+  if (delights.includes('daily_bioblitz_assignment')) {
+    trainingValue += 0.25;
+    spectrogramFidelity += 0.2;
+    wouldRecommendForTraining += 0.1;
   }
 
   const correctCount = journal.filter((j) => j.correct).length;
@@ -915,7 +1004,7 @@ export function readFunPlanStatus(features) {
     powerProgression: (features.powerProgression && features.listenConeProgression) ? 'shipped' : 'missing',
     finalStretchCoach: features.finalStretchCoach ? 'shipped' : 'missing',
     listenConeProgression: features.listenConeProgression ? 'shipped' : 'missing',
-    dailyBioBlitzHook: features.dailyBioBlitz ? 'partial' : 'missing',
+    dailyBioBlitzHook: features.dailyBioBlitzShipped ? 'shipped' : (features.dailyBioBlitz ? 'partial' : 'missing'),
     vectorFieldArt: !!features.vectorResearcherArt,
     demoPresentation: !!features.demoMode,
   };
@@ -1191,8 +1280,13 @@ export function readShippedFeaturesFromHtml(html) {
     habitatAmbient: html.includes('startHabitatAmbient') || html.includes('HABITAT_NOISE_FLOOR'),
     trainingDisclaimer: html.includes('id="training-disclaimer"'),
     dailyBioBlitz: html.includes('dailyRareSpecies') || html.includes('id="bioblitz-rare"'),
+    dailyBioBlitzShipped: html.includes('buildDailyBioBlitzAssignment'),
     progressionMap: html.includes('id="progression-map"'),
-    personaDensity: html.includes('applyPersonaDensity'),
+    personaDensity: html.includes('applyPersonaDensity') && html.includes('applyPersonaJourney'),
+    personaJourney: html.includes('id="persona-chooser"') || html.includes('openPersonaChooser'),
+    personaAutoDemo: html.includes('personaAutoDemo') || html.includes('PERSONA_AUTO_DEMO'),
+    phenologyGatedTime: html.includes('isExpeditionTimeGated') || html.includes('phenology-gated-time'),
+    kaleidoscopeActIV: html.includes('openActFourKaleidoscope') || html.includes('act-four-kaleidoscope'),
     expeditionArc: html.includes('EXPEDITION_REGULAR_TARGET'),
     fieldReportFinale: html.includes('openFieldReportFinale') ? 'shipped' : 'missing',
     heroAudioPerHabitat: html.includes('playHeroCall'),

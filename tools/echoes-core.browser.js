@@ -334,6 +334,52 @@
   const idx = seed % SPECIES.length;
   return SPECIES[idx];
 }
+  function isTrainingPersona(persona) {
+  return TRAINING_PERSONAS.includes(persona);
+}
+  function isExpeditionTimeGated({
+  logged = 0,
+  bossLogged = false,
+  expeditionComplete = false,
+  bossPhaseActive = false,
+  expeditionRegularTarget = EXPEDITION_REGULAR_TARGET,
+} = {}) {
+  if (expeditionComplete) return false;
+  if (bossPhaseActive || (logged >= expeditionRegularTarget && !bossLogged)) return false;
+  return true;
+}
+  function buildDailyBioBlitzAssignment({ persona = 'liam', date = new Date(), streak = 0 } = {}) {
+  const rare = dailyRareSpecies(date);
+  let headline;
+  if (persona === 'aisha') headline = 'Family Chorus: log 2 dawn species with students';
+  else if (persona === 'marcus') headline = `Site report: clear a habitat + log ${rare.name}`;
+  else if (persona === 'elena') headline = `Batch review: cluster clips · target ${rare.name}`;
+  else headline = `Quick BioBlitz: find today's ★ ${rare.name}`;
+  return {
+    rare,
+    streak,
+    headline,
+    compassHint: `★ Daily: ${rare.name}${streak > 0 ? ` · streak ${streak}` : ''}`,
+  };
+}
+  function buildKaleidoscopeClipsFromJournal(journalEntries = [], { minClips = 2 } = {}) {
+  const clips = journalEntries
+    .filter((e) => e.correct)
+    .map((e, i) => {
+      const sp = typeof e.species === 'object' ? e.species : { id: e.species, name: String(e.species) };
+      return {
+        id: `kclip_${i}`,
+        speciesId: sp.id || sp,
+        label: `${sp.name || sp.id} · ${Math.round((e.quality || 0.6) * 100)}%`,
+        quality: e.quality ?? 0.6,
+      };
+    });
+  return {
+    clips,
+    fromJournal: clips.length >= minClips,
+    needsSamples: clips.length < minClips,
+  };
+}
   function simIdentificationBonus({ features, persona, quality, skill }) {
   let bonus = 0;
   const threshold = likelyMatchThreshold(persona);
@@ -662,6 +708,11 @@
     suggestPhenologyTime: suggestPhenologyTime,
     buildClipManifest: buildClipManifest,
     dailyRareSpecies: dailyRareSpecies,
+    TRAINING_PERSONAS: ["aisha","marcus","elena"],
+    isTrainingPersona: isTrainingPersona,
+    isExpeditionTimeGated: isExpeditionTimeGated,
+    buildDailyBioBlitzAssignment: buildDailyBioBlitzAssignment,
+    buildKaleidoscopeClipsFromJournal: buildKaleidoscopeClipsFromJournal,
     simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };

@@ -114,6 +114,26 @@
   </style>
 </head>
 <body class="p-6 max-w-5xl mx-auto persona-liam">
+  <div id="persona-chooser" class="tool-modal hidden" role="dialog" aria-label="Choose your field role" onclick="if (event.target.id === 'persona-chooser') event.stopPropagation()">
+    <div class="card" onclick="event.stopPropagation()" style="max-width:440px">
+      <div class="font-semibold text-emerald-300 mb-2 text-lg">Who's in the field today?</div>
+      <p class="text-xs text-emerald-300/70 mb-4">Your role shapes hints, tools, and session length — Wildlife Acoustics Academy style.</p>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <button type="button" onclick="selectPersonaJourney('liam')" class="px-3 py-3 rounded-xl bg-white/5 hover:bg-emerald-900/40 border border-white/10 text-left">
+          <strong class="text-emerald-200">Casual</strong><br><span class="text-[10px] text-white/60">Liam — 5-min loop, no lab tools</span>
+        </button>
+        <button type="button" onclick="selectPersonaJourney('aisha')" class="px-3 py-3 rounded-xl bg-white/5 hover:bg-emerald-900/40 border border-white/10 text-left">
+          <strong class="text-emerald-200">Educator</strong><br><span class="text-[10px] text-white/60">Aisha — projector demo auto-on</span>
+        </button>
+        <button type="button" onclick="selectPersonaJourney('marcus')" class="px-3 py-3 rounded-xl bg-white/5 hover:bg-emerald-900/40 border border-white/10 text-left">
+          <strong class="text-emerald-200">Citizen scientist</strong><br><span class="text-[10px] text-white/60">Marcus — BioBlitz + site map</span>
+        </button>
+        <button type="button" onclick="selectPersonaJourney('elena')" class="px-3 py-3 rounded-xl bg-white/5 hover:bg-emerald-900/40 border border-white/10 text-left">
+          <strong class="text-emerald-200">Pro biologist</strong><br><span class="text-[10px] text-white/60">Elena — SNR dB + manifest</span>
+        </button>
+      </div>
+    </div>
+  </div>
   <div id="training-disclaimer">
     <button type="button" onclick="dismissTrainingDisclaimer()">✕</button>
     <strong>Training note:</strong> Calls are procedurally synthesized for aiming practice — not field recordings.
@@ -167,6 +187,7 @@
       <button onclick="shareFieldReport()" id="share-btn" class="hidden px-2.5 py-1 text-xs rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"><i class="fa fa-share-alt"></i> Report</button>
       <button onclick="copyPlaytestFeedback()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Feedback</button>
       <button id="demo-mode-btn" onclick="toggleDemoMode()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10" title="Projector mode: 2× cone, larger labels">📽 Demo</button>
+      <span id="persona-badge" class="hidden px-2 py-0.5 text-[10px] rounded bg-white/5 border border-white/10 text-emerald-200/80"></span>
       <select id="persona" onchange="setPersona(this.value)" class="px-2 py-0.5 text-[10px] rounded bg-white/5 border border-white/10 text-emerald-200/80" title="Playtest persona">
         <option value="liam">Persona: Casual</option>
         <option value="aisha">Persona: Educator</option>
@@ -331,6 +352,7 @@
       <p class="text-xs text-emerald-300/80 mb-4" id="finale-learn"></p>
       <div class="flex flex-wrap gap-2 justify-center">
         <button type="button" onclick="shareFieldReport()" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-2xl text-sm">📋 Copy Field Report</button>
+        <button type="button" id="finale-kaleidoscope-btn" onclick="openActFourKaleidoscope()" class="hidden px-4 py-2 rounded-2xl bg-amber-600/80 hover:bg-amber-500 text-black font-medium text-sm">🔬 Kaleidoscope review</button>
         <button type="button" onclick="closeFieldReportFinale()" class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-sm">Keep exploring</button>
       </div>
     </div>
@@ -351,7 +373,9 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v2.3.1-jul2026';
+    const BUILD_VERSION = 'playtest-v2.4-jul2026';
+    const PERSONA_CHOOSER_KEY = 'echoes-persona-chosen-v1';
+    const PERSONA_AUTO_DEMO = 'aisha';
     const EXPEDITION_REGULAR_TARGET = EchoesCore.EXPEDITION_REGULAR_TARGET;
     const KALEIDOSCOPE_EXPEDITION_GATE = 3;
     const SONG_METER_EXPEDITION_GATE = 2;
@@ -534,7 +558,8 @@
         panel.classList.add('boss-phase');
         if (title) title.textContent = 'Act II — Boss caller';
         if (body) {
-          body.textContent = `Time shifted for ${bossSp?.name || 'the boss'}. Follow the golden ring and compass ★ — hold Listen, record the signature call, identify to publish your Field Report.`;
+          body.textContent = `Time shifted for ${bossSp?.name || 'the boss'}. Follow the golden ring and compass ★ — hold Listen, record the signature call, identify to publish your Field Report.` +
+            (dailyBioBlitzAssignment ? ` Daily: ${dailyBioBlitzAssignment.headline}` : '');
         }
         if (fill) fill.style.width = '92%';
         listenBtn?.classList.add('tutorial-pulse');
@@ -592,9 +617,10 @@
         el.innerHTML = `${prefix}: <span class="${demoCls.trim()}">${nearest.animal.species.name}</span> (${Math.round(nearest.distance)}m) · ${snrDb} dB SNR${warmthLabel}<span id="warmth-badge">${listenActive ? Math.round(warmth.warmth * 100) + '% signal' : ''}</span>`;
       } else {
         updateSnrMeter(null, 0);
+        const bioHint = dailyBioBlitzAssignment && !bossHunt ? ` · ${dailyBioBlitzAssignment.compassHint}` : '';
         el.textContent = bossHunt
           ? 'Boss caller quiet — hold Listen; time of day is set for the signature call'
-          : 'No active callers — use ⏱ Schedule in the dock';
+          : `No active callers — use ⏱ Schedule in the dock${bioHint}`;
       }
     }
 
@@ -806,18 +832,20 @@
       if (m) m.classList.add('hidden');
     }
 
-    function populateKaleidoscopeClips() {
+    function populateKaleidoscopeClips(actFour = false) {
       const pool = document.getElementById('k-clip-pool');
       const result = document.getElementById('k-result');
       if (!pool) return;
       pool.innerHTML = '';
       document.querySelectorAll('.k-drop').forEach((d) => { d.innerHTML = ''; });
-      kaleidoscopeClips = journalEntries.filter((e) => e.correct).slice(0, 4).map((e, i) => ({
-        id: 'kclip_' + i,
-        speciesId: e.species.id || e.species,
-        label: (typeof e.species === 'object' ? e.species.name : e.species) + ' · ' + Math.round((e.quality || 0.6) * 100) + '%',
-      }));
-      if (kaleidoscopeClips.length < 2) {
+      const built = EchoesCore.buildKaleidoscopeClipsFromJournal(journalEntries, { minClips: 2 });
+      if (built.fromJournal || actFour) {
+        kaleidoscopeClips = built.clips.length ? built.clips : journalEntries.filter((e) => e.correct).map((e, i) => ({
+          id: 'kclip_' + i,
+          speciesId: (typeof e.species === 'object' ? e.species.id : e.species),
+          label: (typeof e.species === 'object' ? e.species.name : e.species) + ' · ' + Math.round((e.quality || 0.6) * 100) + '%',
+        }));
+      } else {
         kaleidoscopeClips = [
           { id: 'kclip_0', speciesId: 'cardinal', label: 'Northern Cardinal · 78%' },
           { id: 'kclip_1', speciesId: 'owl', label: 'Barred Owl · 65%' },
@@ -836,9 +864,11 @@
         pool.appendChild(el);
       });
       if (result) {
-        result.textContent = journalEntries.filter((e) => e.correct).length >= 2
-          ? 'Drag your logged clips into species clusters — like Kaleidoscope auto-ID review.'
-          : 'Sample clips loaded — log more species in the field to cluster your own recordings.';
+        result.textContent = built.fromJournal || actFour
+          ? `Act IV — drag your ${kaleidoscopeClips.length} expedition clips into clusters (false positives → Unknown).`
+          : journalEntries.filter((e) => e.correct).length >= 2
+            ? 'Drag your logged clips into species clusters — like Kaleidoscope auto-ID review.'
+            : 'Sample clips loaded — log more species in the field to cluster your own recordings.';
       }
     }
 
@@ -861,11 +891,14 @@
       tag.textContent = clip.label;
       drop.appendChild(tag);
       const correct = clusterId === clip.speciesId;
+      const falsePositive = clusterId === 'unknown' && !correct;
       const result = document.getElementById('k-result');
       if (result) {
         result.textContent = correct
           ? `✓ ${clip.label} → ${clusterId} cluster (matches Kaleidoscope auto-ID)`
-          : `△ ${clip.label} in ${clusterId} — review in Kaleidoscope (false positive bucket)`;
+          : falsePositive
+            ? `△ ${clip.label} → Unknown / false-positive bucket (Kaleidoscope Pro review)`
+            : `△ ${clip.label} in ${clusterId} — mis-cluster; try Unknown bucket`;
       }
       checkKaleidoscopeComplete();
     }
@@ -873,8 +906,15 @@
     function checkKaleidoscopeComplete() {
       const remaining = document.querySelectorAll('#k-clip-pool .k-clip').length;
       if (remaining === 0) {
-        showToast('Kaleidoscope clustering complete — export ready', 'good');
+        kaleidoscopePipelineDone = true;
         try { localStorage.setItem('echoes-kaleidoscope-done', '1'); } catch (e) {}
+        if (actFourKaleidoscopeMode) {
+          showToast('Act IV complete — pipeline review done. Export manifest anytime.', 'good');
+          actFourKaleidoscopeMode = false;
+          exportClipManifest();
+        } else {
+          showToast('Kaleidoscope clustering complete — export ready', 'good');
+        }
       }
     }
 
@@ -904,16 +944,86 @@
     }
 
     function updateBioBlitzRare() {
-      const rare = EchoesCore.dailyRareSpecies();
+      dailyBioBlitzAssignment = EchoesCore.buildDailyBioBlitzAssignment({ persona, streak });
       const el = document.getElementById('bioblitz-rare');
-      if (!el) return;
+      if (!el || !dailyBioBlitzAssignment) return;
       const loggedIds = journalEntries.filter((e) => e.correct).map((e) => (e.species.id || e.species));
-      if (loggedIds.includes(rare.id)) {
+      if (loggedIds.includes(dailyBioBlitzAssignment.rare.id)) {
         el.classList.add('hidden');
         return;
       }
       el.classList.remove('hidden');
-      el.textContent = `★ BioBlitz today: ${rare.name} (+streak ${streak})`;
+      el.textContent = dailyBioBlitzAssignment.headline + (streak > 0 ? ` (+streak ${streak})` : '');
+    }
+
+    function isExpeditionTimeGatedLocal() {
+      return EchoesCore.isExpeditionTimeGated({
+        logged,
+        bossLogged,
+        expeditionComplete,
+        bossPhaseActive,
+        expeditionRegularTarget: EXPEDITION_REGULAR_TARGET,
+      });
+    }
+
+    function personaAutoDemo() {
+      if (persona !== PERSONA_AUTO_DEMO) return;
+      if (!demoMode) {
+        demoMode = true;
+        document.body.classList.add('demo-mode', 'demo-presentation');
+        const btn = document.getElementById('demo-mode-btn');
+        if (btn) {
+          btn.classList.add('bg-emerald-700/60');
+          btn.textContent = '📽 Demo ON';
+        }
+        try { localStorage.setItem('echoes-demo-mode', '1'); } catch (e) {}
+        showToast('Educator demo mode: 2× cone, larger labels', 'info');
+      }
+    }
+
+    function openPersonaChooser() {
+      const m = document.getElementById('persona-chooser');
+      if (m) m.classList.remove('hidden');
+    }
+
+    function selectPersonaJourney(p) {
+      setPersona(p);
+      applyPersonaJourney();
+      try { localStorage.setItem(PERSONA_CHOOSER_KEY, '1'); } catch (e) {}
+      document.getElementById('persona-chooser')?.classList.add('hidden');
+    }
+
+    function applyPersonaJourney() {
+      applyPersonaDensity();
+      const trainingRow = document.getElementById('training-tools');
+      const personaSelect = document.getElementById('persona');
+      const personaBadge = document.getElementById('persona-badge');
+      const labels = { liam: 'Casual', aisha: 'Educator', marcus: 'Citizen', elena: 'Pro' };
+      if (persona === 'liam') {
+        if (trainingRow) trainingRow.classList.add('hidden');
+      }
+      if (personaSelect) personaSelect.classList.add('hidden');
+      if (personaBadge) {
+        personaBadge.classList.remove('hidden');
+        personaBadge.textContent = labels[persona] || persona;
+      }
+      if (persona === PERSONA_AUTO_DEMO) personaAutoDemo();
+      updateBioBlitzRare();
+      updateTrainingToolButtons();
+      updateFinalStretchCoach();
+    }
+
+    function openActFourKaleidoscope() {
+      if (!EchoesCore.isTrainingPersona(persona)) {
+        showToast('Kaleidoscope review unlocks for Educator, Citizen scientist, or Pro biologist personas.', 'info');
+        return;
+      }
+      actFourKaleidoscopeMode = true;
+      closeFieldReportFinale();
+      const m = document.getElementById('kaleidoscope-modal');
+      if (m) m.classList.remove('hidden');
+      populateKaleidoscopeClips(true);
+      showToast('Act IV — cluster your expedition clips like Kaleidoscope Pro', 'good');
     }
 
     function openPhenologyChart() {
@@ -1100,8 +1210,7 @@
     function setPersona(v) {
       persona = v;
       try { localStorage.setItem('echoes-persona', v); } catch (e) {}
-      applyPersonaDensity();
-      updateTrainingToolButtons();
+      applyPersonaJourney();
       if (v === 'liam') closeKaleidoscope();
     }
 
@@ -1217,7 +1326,6 @@
     function openFieldReportFinale() {
       expeditionComplete = true;
       const modal = document.getElementById('field-report-modal');
-      const correctOnes = journalEntries.filter((e) => e.correct);
       const habitatName = document.getElementById('title')?.textContent || 'Habitat';
       document.getElementById('finale-title').textContent = 'Field Report Published ✓';
       document.getElementById('finale-sub').textContent = `${habitatName} site survey cleared`;
@@ -1228,6 +1336,12 @@
       if (modal) modal.classList.remove('hidden');
       const shareBtn = document.getElementById('share-btn');
       if (shareBtn) shareBtn.classList.remove('hidden');
+      const kBtn = document.getElementById('finale-kaleidoscope-btn');
+      const training = EchoesCore.isTrainingPersona(persona);
+      if (kBtn) kBtn.classList.toggle('hidden', !training);
+      if (training) {
+        setTimeout(() => openActFourKaleidoscope(), 1400);
+      }
     }
 
     function closeFieldReportFinale() {
@@ -1412,6 +1526,9 @@
     let songMeterSdFormatted = false;
     let kaleidoscopeClips = [];
     let kDragId = null;
+    let actFourKaleidoscopeMode = false;
+    let kaleidoscopePipelineDone = false;
+    let dailyBioBlitzAssignment = null;
     let ambientNode = null;
     let lastSharedClip = null;
 
@@ -1619,6 +1736,7 @@
     }
 
     function advanceTime() {
+      // phenology-gated-time: survey windows only via Schedule chart (no free time-skip)
       openPhenologyChart();
     }
 
@@ -3024,7 +3142,15 @@
       updateStreak();
       updateProgressionMap();
       updateBioBlitzRare();
-      applyPersonaDensity();
+      try {
+        if (!localStorage.getItem(PERSONA_CHOOSER_KEY) && !localStorage.getItem('echoes-persona')) {
+          openPersonaChooser();
+        } else {
+          applyPersonaJourney();
+        }
+      } catch (e) {
+        applyPersonaJourney();
+      }
       updatePowerBadge();
       updateFinalStretchCoach();
       try {

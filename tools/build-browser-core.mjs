@@ -50,6 +50,11 @@ import {
   buildClipManifest,
   dailyRareSpecies,
   simIdentificationBonus,
+  TRAINING_PERSONAS,
+  isTrainingPersona,
+  isExpeditionTimeGated,
+  buildDailyBioBlitzAssignment,
+  buildKaleidoscopeClipsFromJournal,
 } from './echoes-core.mjs';
 import { FieldSession } from './field-session.mjs';
 
@@ -131,6 +136,10 @@ const body = `/* eslint-disable */
   ${fnSource(suggestPhenologyTime)}
   ${fnSource(buildClipManifest)}
   ${fnSource(dailyRareSpecies)}
+  ${fnSource(isTrainingPersona)}
+  ${fnSource(isExpeditionTimeGated)}
+  ${fnSource(buildDailyBioBlitzAssignment)}
+  ${fnSource(buildKaleidoscopeClipsFromJournal)}
   ${fnSource(simIdentificationBonus)}
 
   ${fieldSessionSrc}
@@ -178,6 +187,11 @@ const body = `/* eslint-disable */
     suggestPhenologyTime: suggestPhenologyTime,
     buildClipManifest: buildClipManifest,
     dailyRareSpecies: dailyRareSpecies,
+    TRAINING_PERSONAS: ${JSON.stringify(TRAINING_PERSONAS)},
+    isTrainingPersona: isTrainingPersona,
+    isExpeditionTimeGated: isExpeditionTimeGated,
+    buildDailyBioBlitzAssignment: buildDailyBioBlitzAssignment,
+    buildKaleidoscopeClipsFromJournal: buildKaleidoscopeClipsFromJournal,
     simIdentificationBonus: simIdentificationBonus,
     FieldSession: FieldSession,
   };

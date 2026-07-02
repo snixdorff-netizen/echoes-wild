@@ -38,14 +38,14 @@ export function applyBioacousticsDomainFriction({ friction, features, role, play
     friction.push('species_signature_weak');
   }
   if (!features.snrMeter) friction.push('no_snr_display');
-  if (!features.kaleidoscopePoc) friction.push('kaleidoscope_gap');
-  if (!features.phenologyChart) {
+  if (!features.kaleidoscopePoc && !features.kaleidoscopeActIV) friction.push('kaleidoscope_gap');
+  if (!features.phenologyChart && !features.phenologyGatedTime) {
     friction.push('scheduling_not_realistic');
     friction.push('time_of_day_button_not_phenology');
   }
   if (!features.idConfidence) friction.push('no_confidence_score');
   if (!features.clipManifestExport) friction.push('no_export_workflow');
-  if (role === 'educator' && !features.demoMode) {
+  if (role === 'educator' && !features.demoMode && !features.personaAutoDemo) {
     friction.push('no_demo_mode');
     friction.push('listen_cone_too_subtle');
   }
@@ -198,6 +198,9 @@ export function driveBioacousticsSession({
   }
   if (features.stereoWarmthAudio && totalListenTicks >= 35) delights.push('stereo_warmth_aha');
   if (features.vectorSpeciesArt) delights.push('vector_art_clarity');
+  if (features.dailyBioBlitzShipped) delights.push('daily_bioblitz_assignment');
+  if (features.personaAutoDemo && engineer.role === 'educator') delights.push('persona_demo_auto');
+  if (features.kaleidoscopeActIV && completed) delights.push('kaleidoscope_review_complete');
 
   const scores = scoreBioacousticsRubric({
     role: engineer.role,

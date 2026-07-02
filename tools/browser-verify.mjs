@@ -122,7 +122,20 @@ async function tryPlaywright() {
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
-  // Persona lives in #advanced-bar (hidden until first log) — skip if not visible yet
+  // v2.4 persona chooser blocks audio gate until a role is picked
+  const personaChooser = page.locator('#persona-chooser:not(.hidden) button[onclick*="liam"]');
+  if (await personaChooser.isVisible().catch(() => false)) {
+    await personaChooser.click();
+    await page.waitForTimeout(300);
+  } else {
+    await page.evaluate(() => {
+      try {
+        localStorage.setItem('echoes-persona-chosen-v1', '1');
+        localStorage.setItem('echoes-persona', 'liam');
+      } catch (e) {}
+    });
+  }
+
   const personaEl = page.locator('#persona');
   if (await personaEl.isVisible().catch(() => false)) {
     await personaEl.selectOption('liam');
