@@ -84,6 +84,10 @@
     body.persona-aisha .desktop-hint { display: inline !important; }
     #game-wrap { position: relative; border-radius: 22px; overflow: hidden; max-width: 880px; margin: 0 auto;
       box-shadow: 0 0 0 1px rgba(74,222,128,.14), 0 28px 56px -14px rgba(0,0,0,.72), 0 0 72px rgba(52,211,153,.07); }
+    #audio-gate { background: url('assets/echoes-splash.jpg') center/cover no-repeat; }
+    #audio-gate::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,15,12,.72) 0%, rgba(5,15,12,.88) 100%); }
+    #audio-gate button { position: relative; z-index: 2; }
+    #persona-chooser .card { background-image: linear-gradient(160deg, rgba(6,78,59,.92), rgba(15,35,28,.96)), url('assets/forest-dawn-bg.jpg'); background-size: cover; background-position: center; }
     #game-wrap canvas { border: none; box-shadow: none; border-radius: 0; }
     body.demo-presentation { padding: 28px 32px; max-width: 980px; background: radial-gradient(ellipse at 50% 0%, #0a2418 0%, #050f0c 55%); }
     body.demo-presentation #training-disclaimer,
@@ -227,8 +231,12 @@
     <button id="btn-time" type="button" title="Open survey schedule / phenology chart (T)">⏱ Schedule</button>
   </div>
   <div id="toast" role="status"></div>
-  <div id="audio-gate" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-    <button type="button" onclick="unlockAudio()" class="px-6 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-lg shadow-lg">Tap to enter the soundscape</button>
+  <div id="audio-gate" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center p-6">
+    <div class="relative z-10 text-center mb-8 max-w-md">
+      <div class="text-4xl font-bold tracking-tight text-emerald-100 mb-2" style="text-shadow: 0 2px 24px rgba(0,0,0,.8)">ECHOES</div>
+      <p class="text-sm text-emerald-300/80" style="text-shadow: 0 1px 12px rgba(0,0,0,.7)">Wildlife Acoustics field survey · v2.5 art pass</p>
+    </div>
+    <button type="button" onclick="unlockAudio()" class="relative z-10 px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-lg shadow-lg shadow-emerald-900/50">Tap to enter the soundscape</button>
   </div>
   <div id="nearest-hint" class="text-center text-[11px] text-emerald-300/60 mt-1 min-h-[16px]"></div>
 
@@ -373,7 +381,7 @@
   <script src="tools/echoes-core.browser.js"></script>
   <script>
     const PLAYTEST_URL = 'https://snixdorff-netizen.github.io/echoes-wild/';
-    const BUILD_VERSION = 'playtest-v2.4-jul2026';
+    const BUILD_VERSION = 'playtest-v2.5-art-jul2026';
     const PERSONA_CHOOSER_KEY = 'echoes-persona-chosen-v1';
     const PERSONA_AUTO_DEMO = 'aisha';
     const EXPEDITION_REGULAR_TARGET = EchoesCore.EXPEDITION_REGULAR_TARGET;
@@ -390,6 +398,31 @@
     let onboardingStep = 0;
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+
+    const artAssets = {};
+    const ART_MANIFEST = {
+      forest_bg: 'assets/forest-dawn-bg.jpg',
+      marsh_bg: 'assets/marsh-day-bg.jpg',
+      canyon_bg: 'assets/canyon-dusk-bg.jpg',
+      researcher: 'assets/field-researcher.jpg',
+      species_cardinal: 'assets/species-cardinal.jpg',
+      species_owl: 'assets/species-owl.jpg',
+    };
+    const TIME_TINTS = {
+      dawn: 'rgba(255, 190, 130, 0.2)',
+      day: 'rgba(255, 255, 255, 0)',
+      dusk: 'rgba(100, 50, 120, 0.3)',
+      night: 'rgba(8, 16, 48, 0.48)',
+    };
+    function loadArtAssets() {
+      Object.entries(ART_MANIFEST).forEach(([key, src]) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = src;
+        artAssets[key] = img;
+      });
+    }
+    loadArtAssets();
 
     const SPRITES = {
   hikernormal: 'data:image/jpeg;base64,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',
@@ -2074,8 +2107,25 @@
       lastFrame = now;
     }
 
-    /** Vector species silhouettes — P0-04 (replaces blurry JPEG sprites on map). */
+    /** Species art — generated sprites when loaded, vector fallback. */
     function drawSpeciesSilhouette(ctx, speciesId, color, active, calling) {
+      const spKey = 'species_' + speciesId;
+      const spImg = artAssets[spKey];
+      if (spImg && spImg.complete && spImg.naturalWidth > 0) {
+        const size = calling ? 46 : active ? 38 : 30;
+        ctx.save();
+        if (calling) {
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 18;
+        } else if (active) {
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 8;
+        }
+        if (!active) ctx.globalAlpha = 0.55;
+        ctx.drawImage(spImg, -size / 2, -size / 2, size, size);
+        ctx.restore();
+        return;
+      }
       const fill = active ? color : '#5a6470';
       const stroke = active ? 'rgba(236,253,245,0.9)' : 'rgba(100,116,139,0.6)';
       if (calling) {
@@ -2305,9 +2355,29 @@
       }
     }
 
+    function drawVignette(w, h) {
+      const v = ctx.createRadialGradient(w * 0.5, h * 0.48, h * 0.18, w * 0.5, h * 0.5, h * 0.78);
+      v.addColorStop(0, 'rgba(0,0,0,0)');
+      v.addColorStop(1, 'rgba(0,0,0,0.38)');
+      ctx.fillStyle = v;
+      ctx.fillRect(0, 0, w, h);
+    }
+
     function drawEnhancedHabitat(w, h) {
       const tod = gameState.timeOfDay;
       const habitat = gameState.habitat;
+      const bgImg = artAssets[habitat + '_bg'];
+      if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+        ctx.drawImage(bgImg, 0, 0, w, h);
+        const tint = TIME_TINTS[tod];
+        if (tint && tint !== 'rgba(255, 255, 255, 0)') {
+          ctx.fillStyle = tint;
+          ctx.fillRect(0, 0, w, h);
+        }
+        drawAtmosphere(w, h, tod);
+        drawVignette(w, h);
+        return;
+      }
       drawSky(w, h, habitatSkyStops(tod, habitat));
       drawCelestial(w, h, tod);
       drawHills(w, h, habitat);
@@ -2336,6 +2406,24 @@
     function drawFieldResearcher(ctx, opts = {}) {
       const { charging = false, dashing = false, listening = false } = opts;
       const lean = dashing ? 0.18 : charging ? -0.08 : 0;
+      const researcherImg = artAssets.researcher;
+      if (researcherImg && researcherImg.complete && researcherImg.naturalWidth > 0) {
+        ctx.rotate(lean);
+        const sz = dashing ? 78 : charging ? 70 : 66;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        ctx.drawImage(researcherImg, -sz / 2, -sz / 2 - 6, sz, sz);
+        if (listening) {
+          ctx.strokeStyle = 'rgba(110,231,183,0.65)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, -8, sz * 0.38, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        return;
+      }
       ctx.rotate(lean);
       ctx.shadowColor = 'rgba(0,0,0,0.45)';
       ctx.shadowBlur = 6;

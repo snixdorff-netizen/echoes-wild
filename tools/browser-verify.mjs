@@ -47,7 +47,7 @@ function staticChecks() {
     canvasCompass: html.includes('drawCanvasCompass'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
-    buildVersionV24: html.includes("BUILD_VERSION = 'playtest-v2.4-jul2026'"),
+    buildVersionV24: /BUILD_VERSION = 'playtest-v2\.[45]/.test(html),
     personaChooser: html.includes('id="persona-chooser"') && html.includes('selectPersonaJourney'),
     actFourKaleidoscope: html.includes('openActFourKaleidoscope') && html.includes('buildKaleidoscopeClipsFromJournal'),
     phenologyGatedTime: html.includes('phenology-gated-time') && html.includes('isExpeditionTimeGated'),
