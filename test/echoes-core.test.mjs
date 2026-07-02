@@ -31,8 +31,15 @@ import {
   buildKaleidoscopeClipsFromJournal,
   isTrainingPersona,
   readShippedFeaturesFromHtml,
+  bioacousticsFeatureFlagsV231,
+  bioacousticsFeatureFlagsV24,
   EXPEDITION_REGULAR_TARGET,
 } from '../tools/echoes-core.mjs';
+import {
+  proveBioacousticsV24Causation,
+  driveBioacousticsSession,
+  seededBioRng,
+} from '../tools/bioacoustics-sim-drive.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -514,5 +521,26 @@ describe('angleDiff helper', () => {
   it('is minimal when facing target', () => {
     const d = angleDiff(Math.PI / 4, Math.PI / 4);
     assert.ok(d < 0.01);
+  });
+});
+
+describe('bioacoustics v2.4 causation (driveBioacousticsSession + echoes-core rubric)', () => {
+  it('v2.3.1 feature flags score below 9.99 fidelity; v2.4 shipped flags score at or above', () => {
+    const result = proveBioacousticsV24Causation(88042);
+    assert.ok(result.v231Fidelity < 9.99, `v2.3.1 fidelity was ${result.v231Fidelity}`);
+    assert.ok(result.v24Fidelity >= 9.99, `v2.4 fidelity was ${result.v24Fidelity}`);
+    assert.equal(result.pass, true);
+  });
+
+  it('educator session with v2.4 flags clears classroom floor via rubric delights', () => {
+    const session = driveBioacousticsSession({
+      engineer: { id: 'edu_causation', role: 'educator', playHabit: 'puzzle' },
+      features: bioacousticsFeatureFlagsV24(),
+      skill: 0.86,
+      rng: seededBioRng(9912),
+      bossAssist: true,
+    });
+    assert.ok(session.scores.wouldUseInClassroom >= 4.0);
+    assert.ok(session.delights.includes('persona_demo_auto') || session.delights.includes('persona_journey_started'));
   });
 });

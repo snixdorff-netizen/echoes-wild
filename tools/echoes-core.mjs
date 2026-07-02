@@ -887,6 +887,26 @@ export function scoreBioacousticsRubric({
     spectrogramFidelity += 0.2;
     wouldRecommendForTraining += 0.1;
   }
+  if (delights.includes('daily_bioblitz_target_logged')) {
+    spectrogramFidelity += 0.45;
+    trainingValue += 0.2;
+    wouldRecommendForTraining += 0.15;
+  }
+  if (delights.includes('persona_journey_started')) {
+    spectrogramFidelity += 0.55;
+    trainingValue += 0.25;
+    if (role === 'educator') wouldUseInClassroom += 0.2;
+  }
+  if (delights.includes('phenology_schedule_only')) {
+    spectrogramFidelity += 0.35;
+    scientificCredibility += 0.3;
+    trainingValue += 0.2;
+  }
+  if (delights.includes('phenology_gated_expedition')) {
+    spectrogramFidelity += 0.5;
+    scientificCredibility += 0.4;
+    trainingValue += 0.3;
+  }
 
   const correctCount = journal.filter((j) => j.correct).length;
   if (correctCount >= 5) trainingValue += 0.25;
@@ -1240,6 +1260,49 @@ export {
 } from './field-session.mjs';
 
 export { driveFieldSession } from './sim-drive.mjs';
+
+/** v2.3.1 bioacoustics feature profile — pre-phenology / pre-Act IV. */
+export function bioacousticsFeatureFlagsV231() {
+  return {
+    interactiveSpectrogram: true,
+    kaleidoscopePoc: true,
+    phenologyChart: false,
+    phenologyGatedTime: false,
+    dailyBioBlitz: true,
+    dailyBioBlitzShipped: false,
+    kaleidoscopeActIV: false,
+    personaJourney: false,
+    personaAutoDemo: false,
+    demoMode: false,
+    expeditionArc: true,
+    trainingDisclaimer: true,
+    snrMeter: true,
+    guidedCoach: true,
+    interactiveTutorial: true,
+    stereoWarmthAudio: true,
+    vectorSpeciesArt: true,
+    finalStretchCoach: true,
+    fieldReportFinale: 'shipped',
+    idConfidence: true,
+    clipManifestExport: true,
+    dashDisabled: true,
+  };
+}
+
+/** v2.4 shipped bioacoustics flags — phenology gate, journal Kaleidoscope, persona journeys. */
+export function bioacousticsFeatureFlagsV24() {
+  return {
+    ...bioacousticsFeatureFlagsV231(),
+    phenologyChart: true,
+    phenologyGatedTime: true,
+    dailyBioBlitzShipped: true,
+    kaleidoscopeActIV: true,
+    personaJourney: true,
+    personaAutoDemo: true,
+    personaDensity: true,
+    demoMode: true,
+  };
+}
 
 export function readShippedFeaturesFromHtml(html) {
   return {

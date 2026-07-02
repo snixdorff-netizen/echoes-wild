@@ -290,7 +290,7 @@ async function tryPlaywright() {
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification (v2.4 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (v2.4 persona + phenology + journal Kaleidoscope)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;
