@@ -9,6 +9,8 @@ import {
   selectRecordingTarget,
   applyIdentification,
   getBossTimeOfDay,
+  buildDailyBioBlitzAssignment,
+  buildKaleidoscopeClipsFromJournal,
   FACING_BONUS_THRESHOLD,
 } from '../tools/echoes-core.mjs';
 
@@ -50,6 +52,22 @@ describe('browser bundle parity', () => {
     const rec = core.selectRecordingTarget(player, animals, 'dawn');
     assert.equal(rec.dominant.species.id, animals[0].species.id);
     assert.equal(rec.best.species.id, animals[0].species.id);
+  });
+
+  it('v2.4 bioacoustics helpers run in browser bundle without missing globals', () => {
+    assert.ok(!browserSrc.includes('PERSONA_BIOBLITZ_ASSIGNMENTS'));
+    const core = loadBrowserCore();
+    const assignment = core.buildDailyBioBlitzAssignment({ persona: 'aisha', date: new Date('2026-07-01') });
+    assert.ok(assignment.headline.includes('Family Chorus'));
+    const mjsAssignment = buildDailyBioBlitzAssignment({ persona: 'aisha', date: new Date('2026-07-01') });
+    assert.equal(assignment.headline, mjsAssignment.headline);
+    const journal = [
+      { correct: true, species: { id: 'owl', name: 'Barred Owl' }, quality: 0.8 },
+      { correct: true, species: { id: 'cardinal', name: 'Northern Cardinal' }, quality: 0.7 },
+    ];
+    const built = core.buildKaleidoscopeClipsFromJournal(journal);
+    assert.equal(built.fromJournal, buildKaleidoscopeClipsFromJournal(journal).fromJournal);
+    assert.equal(built.clips.length, 2);
   });
 
   it('getBossTimeOfDay runs without missing globals', () => {

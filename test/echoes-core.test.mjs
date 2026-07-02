@@ -305,6 +305,17 @@ describe('v2.4 bioacoustics pipeline helpers', () => {
     assert.equal(built.clips[0].speciesId, 'owl');
   });
 
+  it('Act IV path accepts single journal clip when expedition complete (minClips bypass via caller)', () => {
+    const journal = [
+      { correct: true, species: { id: 'peeper', name: 'Spring Peeper' }, quality: 0.88 },
+    ];
+    const built = buildKaleidoscopeClipsFromJournal(journal, { minClips: 1 });
+    assert.equal(built.fromJournal, true);
+    assert.equal(built.clips.length, 1);
+    assert.equal(built.clips[0].speciesId, 'peeper');
+    assert.equal(built.needsSamples, false);
+  });
+
   it('isTrainingPersona gates training tools personas', () => {
     assert.equal(isTrainingPersona('aisha'), true);
     assert.equal(isTrainingPersona('liam'), false);
