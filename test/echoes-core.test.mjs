@@ -380,6 +380,8 @@ describe('v2.4 bioacoustics pipeline helpers', () => {
     assert.equal(features.phenologyGatedTime, true);
     assert.equal(features.kaleidoscopeActIV, true);
     assert.equal(features.personaAutoDemo, true);
+    assert.ok(html.includes("BUILD_VERSION = 'playtest-v2.4-jul2026'"));
+    assert.ok(!html.includes('Playtest v2.3'));
   });
 });
 

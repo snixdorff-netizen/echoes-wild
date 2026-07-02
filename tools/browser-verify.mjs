@@ -47,6 +47,12 @@ function staticChecks() {
     canvasCompass: html.includes('drawCanvasCompass'),
     canvas880: html.includes('width="880"') && html.includes('height="620"'),
     noEsModuleEntry: !html.includes('type="module"'),
+    buildVersionV24: html.includes("BUILD_VERSION = 'playtest-v2.4-jul2026'"),
+    personaChooser: html.includes('id="persona-chooser"') && html.includes('selectPersonaJourney'),
+    actFourKaleidoscope: html.includes('openActFourKaleidoscope') && html.includes('buildKaleidoscopeClipsFromJournal'),
+    phenologyGatedTime: html.includes('phenology-gated-time') && html.includes('isExpeditionTimeGated'),
+    dailyBioBlitzShipped: html.includes('buildDailyBioBlitzAssignment'),
+    personaAutoDemo: html.includes('PERSONA_AUTO_DEMO'),
   };
 }
 
@@ -284,7 +290,7 @@ async function tryPlaywright() {
 
 async function main() {
   const checks = staticChecks();
-  const log = ['ECHOES browser verification (v2.3 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
+  const log = ['ECHOES browser verification (v2.4 DOM + canvas mouse playtest)', 'static: ' + JSON.stringify(checks, null, 2)];
   const fallbackPath = join(scratch, 'launch-fallback.log');
 
   let pw;

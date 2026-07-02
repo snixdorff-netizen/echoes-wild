@@ -196,7 +196,7 @@
       </select>
     </div>
     <button onclick="showHelp()" class="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 border border-white/10">Help</button>
-    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v2.3 — final-stretch coach · wider listen cone at expedition 2+</span>
+    <span class="text-[10px] text-emerald-300/50 ml-1 desktop-hint">v2.4 — persona journeys · Act IV Kaleidoscope · daily BioBlitz</span>
   </div>
 
   <div id="mission-bar" aria-label="Expedition story arc">
@@ -335,7 +335,7 @@
           <li>Log 4 survey species, then identify the boss caller for a cinematic Field Report you can share</li>
         </ul>
         <p class="text-[10px]">For this playtest: Try to complete at least one full expedition (4 + boss). Use the Feedback button at the end of your session. Feel free to think aloud.</p>
-        <p class="text-[10px] text-emerald-400/60">Version: Playtest v2.3 • July 2026 • Final-stretch coach, boss compass, wider listen cone at expedition 2+. Kaleidoscope for training personas at exp 3.</p>
+        <p class="text-[10px] text-emerald-400/60">Version: Playtest v2.4 • July 2026 • Persona chooser, phenology-gated Schedule, Act IV journal Kaleidoscope, daily BioBlitz assignments.</p>
       </div>
     </div>
   </div>
@@ -1013,6 +1013,7 @@
       updateFinalStretchCoach();
     }
 
+    /** act-four-kaleidoscope — post-Field-Report journal clustering (training personas). */
     function openActFourKaleidoscope() {
       if (!EchoesCore.isTrainingPersona(persona)) {
         showToast('Kaleidoscope review unlocks for Educator, Citizen scientist, or Pro biologist personas.', 'info');
